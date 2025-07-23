@@ -1,10 +1,10 @@
-# Financial Risk Simulator 🚧 *(Work in Progress)*
+# Financial Risk Simulator  *(Work in Progress)*
 
 A Python-based simulation tool to model stock price behavior using Monte Carlo methods and assess investment risk through quantitative metrics such as Value at Risk (VaR) and Conditional Value at Risk (CVaR).
 
 ---
 
-## 📌 Overview
+##  Overview
 
 This project serves as a foundational tool for exploring probabilistic forecasting and financial risk analytics. It leverages historical market data to simulate future asset paths and estimate potential downside risks, enabling informed decision-making in uncertain market conditions.
 
