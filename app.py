@@ -38,6 +38,9 @@ with st.sidebar:
 - "Run 2008 financial crisis stress test on RELIANCE.NS"
 - "Export AAPL risk report to Excel"
 - "Export TSLA data for PowerBI"
+- "Get latest news and sentiment for AAPL"
+- "Compute efficient frontier for AAPL, MSFT, GOOGL"
+- "What are today's top market movers?"
 """)
 
     st.markdown("### Capabilities")
@@ -46,6 +49,8 @@ with st.sidebar:
 - Historical stress testing (2008, COVID, Dot-com, more)
 - GARCH(1,1) volatility modeling
 - Export: Excel reports & PowerBI datasets
+- 📰 **Financial news**: RSS feed with sentiment analysis
+- 📐 **Efficient frontier**: Markowitz optimal portfolio weights
 """)
 
     st.divider()
@@ -71,7 +76,9 @@ if "messages" not in st.session_state:
                 "- 📊 **Portfolio analysis**: correlation matrix, portfolio VaR\n"
                 "- ⚡ **Stress testing**: 5 historical crisis scenarios\n"
                 "- 📈 **GARCH modeling**: time-varying volatility estimation\n"
-                "- 💾 **Export**: Excel reports & PowerBI datasets\n\n"
+                "- 💾 **Export**: Excel reports & PowerBI datasets\n"
+                "- 📰 **Financial news**: RSS headlines + bullish/bearish sentiment\n"
+                "- 📐 **Efficient frontier**: Markowitz optimal weights\n\n"
                 'Ask me anything like: *"What\'s the VaR for AAPL?"* or *"Run a Monte Carlo sim for RELIANCE.NS"*'
             ),
         }
@@ -128,3 +135,23 @@ with col3:
                 st.success(result)
         else:
             st.warning("Enter a ticker first")
+
+st.divider()
+st.subheader("📰 Market News")
+news_col1, news_col2 = st.columns([2, 1])
+with news_col1:
+    news_ticker = st.text_input("Ticker for news", placeholder="AAPL", key="news_ticker")
+with news_col2:
+    news_source = st.selectbox("Source", ["Stock News", "Market Headlines"], key="news_source")
+
+if st.button("Fetch News", use_container_width=False):
+    if news_ticker:
+        with st.spinner("Fetching news..."):
+            if news_source == "Stock News":
+                query = f"Get latest financial news and sentiment for {news_ticker.upper()}"
+            else:
+                query = "Get latest market headlines and top stories"
+            result = run_agent(agent_executor, query)
+            st.markdown(result)
+    else:
+        st.warning("Enter a ticker first")

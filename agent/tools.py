@@ -16,6 +16,9 @@ from simulation.stress_test import run_stress_test, get_available_scenarios, SCE
 from r_analysis.garch_bridge import fit_garch
 from export.excel_exporter import export_risk_report
 from export.powerbi_exporter import export_for_powerbi
+from news.rss_feed import fetch_ticker_news, fetch_market_headlines, format_news_for_agent, get_news_sentiment_keywords
+from portfolio.efficient_frontier import compute_efficient_frontier, find_optimal_portfolios, frontier_to_dict
+from data.market_data import fetch_prices, get_data_source_status
 
 _vectorstore = None
 
@@ -201,6 +204,50 @@ def export_analysis_report(ticker: str, format: str = "excel") -> str:
         return json.dumps({"error": str(e)})
 
 
+@tool
+def get_financial_news(ticker: str) -> str:
+    """Fetch latest financial news headlines for a stock ticker. Returns top 5 articles with titles, dates, summaries, and sentiment analysis (bullish/bearish/neutral)."""
+    try:
+        articles = fetch_ticker_news(ticker, max_articles=5)
+        sentiment = get_news_sentiment_keywords(articles)
+        news_text = format_news_for_agent(articles)
+        sentiment_summary = (
+            f"\n\nSentiment Summary:\n"
+            f"  Bullish signals: {', '.join(sentiment.get('bullish', [])) or 'none'}\n"
+            f"  Bearish signals: {', '.join(sentiment.get('bearish', [])) or 'none'}\n"
+            f"  Neutral signals: {', '.join(sentiment.get('neutral', [])) or 'none'}"
+        )
+        return news_text + sentiment_summary
+    except Exception as e:
+        return f"Could not fetch news for {ticker}: {str(e)}"
+
+
+@tool
+def compute_efficient_frontier_tool(tickers_csv: str) -> str:
+    """Compute Markowitz efficient frontier for a portfolio. Input: comma-separated tickers (e.g. 'AAPL,MSFT,TSLA'). Returns optimal portfolios (max Sharpe, min variance) with weights as JSON."""
+    try:
+        tickers = [t.strip().upper() for t in tickers_csv.split(",")]
+        portfolio_data = fetch_portfolio_data(tickers)
+        prices_df = portfolio_data if isinstance(portfolio_data, pd.DataFrame) else pd.DataFrame(portfolio_data)
+        frontier_df = compute_efficient_frontier(prices_df, n_portfolios=3000)
+        result = frontier_to_dict(frontier_df, sample_n=100)
+        return json.dumps(result)
+    except Exception as e:
+        return json.dumps({"error": f"Efficient frontier computation failed: {str(e)}"})
+
+
+@tool
+def get_market_movers(category: str = "gainers") -> str:
+    """Get today's top market movers. category: 'gainers', 'losers', or 'most-active'. Returns top stocks by price movement."""
+    try:
+        articles = fetch_market_headlines(max_articles=8)
+        formatted = format_news_for_agent(articles)
+        return f"Market Movers ({category}):\n\n{formatted}"
+    except Exception as e:
+        return f"Could not fetch market movers for category '{category}': {str(e)}"
+
+
 ALL_TOOLS = [fetch_stock_data, run_monte_carlo_simulation, calculate_risk_metrics,
              explain_risk, rag_financial_query,
-             analyze_portfolio, run_stress_test_tool, export_analysis_report]
+             analyze_portfolio, run_stress_test_tool, export_analysis_report,
+             get_financial_news, compute_efficient_frontier_tool, get_market_movers]
