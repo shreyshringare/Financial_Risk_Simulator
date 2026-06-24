@@ -4,22 +4,19 @@ import matplotlib.pyplot as plt
 
 def download_data(ticker, start="2020-01-01"):
     data = yf.download(ticker, start=start)
-    return data['Close'][ticker]
+    return data['Close']
 
 def simulate_price_paths(prices, days=252, simulations=500):
     log_returns = np.log(prices / prices.shift(1)).dropna()
     mu, sigma = log_returns.mean(), log_returns.std()
     last_price = prices.iloc[-1]
     
-    simulated_paths = np.zeros((simulations, days))
-    
-    for i in range(simulations):
-        path = [last_price]
-        for _ in range(1, days):
-            next_price = path[-1] * np.exp((mu - 0.5 * sigma ** 2) + sigma * np.random.normal())
-            path.append(next_price)
-        simulated_paths[i] = np.array(path)
-        
+    daily_returns = np.exp(
+        (mu - 0.5 * sigma ** 2) + sigma * np.random.normal(size=(simulations, days))
+    )
+    daily_returns[:, 0] = last_price
+    simulated_paths = last_price * np.cumprod(daily_returns, axis=1)
+
     return simulated_paths
 
 def plot_simulations(simulated_paths):
