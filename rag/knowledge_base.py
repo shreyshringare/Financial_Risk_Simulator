@@ -1,14 +1,16 @@
 """
 RAG knowledge base for financial concepts.
-Uses ChromaDB on-disk at ./chroma_db/ with OpenAI embeddings.
-Cold start: ~30s first run (fetches + embeds). Subsequent: ~0.3s.
+Uses ChromaDB on-disk at ./chroma_db/ with HuggingFace embeddings (BAAI/bge-base-en-v1.5).
+No API key required — model downloads once (~110MB) and runs locally.
+
+Cold start: ~60s first run (model download + fetch + embed). Subsequent: ~0.3s.
 """
 
 import os
 
 from langchain_community.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 
 URLS = [
@@ -31,7 +33,12 @@ def get_or_create_knowledge_base() -> Chroma:
     Load existing ChromaDB if it exists, else fetch URLs, embed, and persist.
     Returns Chroma vectorstore instance.
     """
-    embeddings = OpenAIEmbeddings()
+    # BAAI/bge-base-en-v1.5 — top MTEB benchmark, runs fully locally, no API key
+    embeddings = HuggingFaceEmbeddings(
+        model_name="BAAI/bge-base-en-v1.5",
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": True},  # required for bge models
+    )
 
     # Check if the chroma_db directory exists and has content
     if os.path.isdir(PERSIST_DIRECTORY) and os.listdir(PERSIST_DIRECTORY):
