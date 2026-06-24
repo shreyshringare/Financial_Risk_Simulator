@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain import hub
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -11,13 +10,38 @@ from agent.prompts import SYSTEM_PROMPT
 
 load_dotenv()
 
+# ---------------------------------------------------------------------------
+# LLM selection — priority: Groq (free) → OpenAI (paid fallback)
+#
+# Groq free tier: 14,400 req/day, no credit card required.
+# Sign up: https://console.groq.com → API Keys → Create key
+# Add to .env: GROQ_API_KEY=your-key-here
+#
+# To use OpenAI instead: set OPENAI_API_KEY and remove/unset GROQ_API_KEY.
+# ---------------------------------------------------------------------------
+
+def _build_llm():
+    groq_key = os.getenv("GROQ_API_KEY")
+    if groq_key:
+        from langchain_groq import ChatGroq
+        return ChatGroq(
+            model="llama-3.3-70b-versatile",
+            temperature=0,
+            max_tokens=2000,
+            api_key=groq_key,
+        )
+    # Fallback to OpenAI
+    from langchain_openai import ChatOpenAI
+    return ChatOpenAI(model="gpt-4o-mini", temperature=0, max_tokens=2000)
+
 
 def create_agent() -> AgentExecutor:
     """
     Create and return a LangChain ReAct AgentExecutor.
     Safe to call with @st.cache_resource in Streamlit.
+    Uses Groq (free) if GROQ_API_KEY set, else OpenAI.
     """
-    llm = ChatOpenAI(model="gpt-4o", temperature=0, max_tokens=2000)
+    llm = _build_llm()
 
     # Build tool descriptions for the prompt
     tool_descriptions = "\n".join(
