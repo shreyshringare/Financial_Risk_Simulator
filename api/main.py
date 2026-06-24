@@ -47,9 +47,12 @@ class AnalystCallbackHandler(AsyncCallbackHandler):
             await self._put({"type": "section", "section": section, "data": data})
 
     async def on_chain_end(self, outputs: dict, **kwargs: Any) -> None:
-        await self._put({"type": "section", "section": "caveats", "data": {}})
-        await self._put({"type": "done"})
-        await self.queue.put(None)  # poison pill
+        # Only the outermost AgentExecutor chain has "output" key.
+        # Sub-chains (LLM calls, tool chains) have different keys — ignore them.
+        if "output" in outputs:
+            await self._put({"type": "section", "section": "caveats", "data": {}})
+            await self._put({"type": "done"})
+            await self.queue.put(None)  # poison pill
 
     async def on_chain_error(self, error: Exception, **kwargs: Any) -> None:
         await self._put({"type": "error", "message": str(error)})

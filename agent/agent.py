@@ -29,10 +29,11 @@ def _build_llm():
             temperature=0,
             max_tokens=2000,
             api_key=groq_key,
+            streaming=True,
         )
     # Fallback to OpenAI
     from langchain_openai import ChatOpenAI
-    return ChatOpenAI(model="gpt-4o-mini", temperature=0, max_tokens=2000)
+    return ChatOpenAI(model="gpt-4o-mini", temperature=0, max_tokens=2000, streaming=True)
 
 
 def create_agent() -> AgentExecutor:

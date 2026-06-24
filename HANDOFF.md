@@ -1,7 +1,7 @@
 # HANDOFF — Agentic Financial Risk Simulator
 
-Session date: 2026-06-24  
-Status: **IN PROGRESS — Next.js + FastAPI migration, Tasks 1-4 done, Tasks 5-11 remain**
+Session date: 2026-06-25  
+Status: **NEARLY COMPLETE — Tasks 1-10 done, Task 11 (integration smoke test) remains — run manually**
 
 ---
 
@@ -82,19 +82,37 @@ type SSEEvent =
 
 ---
 
-## What Remains (Tasks 5-11)
+## What's Built (Tasks 1-10 ✅)
 
-All tasks defined in: `docs/superpowers/plans/2026-06-24-nextjs-fastapi-migration.md`
+| Task | Status | Files |
+|------|--------|-------|
+| Python deps | ✅ | `requirements.txt` |
+| FastAPI skeleton | ✅ | `api/__init__.py`, `api/main.py`, `tests/test_api.py` |
+| SSE streaming | ✅ | `api/main.py` (full `AnalystCallbackHandler`) |
+| Next.js scaffold | ✅ | `frontend/` (TypeScript, Tailwind v4, react-markdown) |
+| Types + utilities | ✅ | `frontend/src/types/events.ts`, `lib/riskUtils.ts`, `lib/sseClient.ts` |
+| Tailwind v4 theme | ✅ | `tailwind.config.ts` (stub), `globals.css` (phosphor theme via `@theme`) |
+| Section cards | ✅ | `cards/StockCard.tsx`, `MonteCarloCard.tsx`, `RiskCard.tsx`, `VerdictCard.tsx`, `CaveatsCard.tsx`, `ProseCard.tsx` |
+| QueryBar + Sidebar | ✅ | `components/QueryBar.tsx`, `Sidebar.tsx` |
+| ReportArea | ✅ | `components/ReportArea.tsx` |
+| Terminal page | ✅ | `src/app/page.tsx` (useReducer SSE orchestration) |
 
-| Task | What | Files |
-|------|------|-------|
-| 5 | Types + riskUtils + sseClient | `frontend/src/types/events.ts`, `lib/riskUtils.ts`, `lib/sseClient.ts` |
-| 6 | Tailwind theme + globals + layout | `tailwind.config.ts`, `globals.css`, `layout.tsx` |
-| 7 | Section cards | `cards/StockCard.tsx`, `MonteCarloCard.tsx`, `RiskCard.tsx`, `VerdictCard.tsx`, `CaveatsCard.tsx`, `ProseCard.tsx` |
-| 8 | QueryBar + Sidebar | `components/QueryBar.tsx`, `Sidebar.tsx` |
-| 9 | ReportArea | `components/ReportArea.tsx` |
-| 10 | Terminal page | `src/app/page.tsx` (useReducer SSE orchestration) |
-| 11 | Integration smoke test | Manual — start both servers, verify end-to-end |
+## What Remains (Task 11)
+
+Manual integration test only. Run both servers and verify E2E:
+
+```bash
+# Terminal 1 — Backend
+cd "D:/SDE Projects/FinancialSim"
+venv/Scripts/python -m uvicorn api.main:app --reload --port 8000
+
+# Terminal 2 — Frontend
+cd "D:/SDE Projects/FinancialSim/frontend"
+npm run dev
+# → http://localhost:3000
+```
+
+Test: type "What is the VaR for AAPL?" → verify StockCard → MonteCarloCard → RiskCard → VerdictCard streaming → CaveatsCard.
 
 **CRITICAL for Tasks 5-10:** Port the phosphor terminal aesthetic from `design-prototype.html` into the components. Do NOT use the default Tailwind/Robinhood theme in the plan — the plan was written before the design was finalized. Use the design prototype as the source of truth for CSS.
 

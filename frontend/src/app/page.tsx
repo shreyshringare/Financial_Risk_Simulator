@@ -1,65 +1,162 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useReducer, useCallback } from "react";
+import type { ReportSection, SSEEvent } from "@/types/events";
+import { streamChat } from "@/lib/sseClient";
+import QueryBar from "@/components/QueryBar";
+import ReportArea from "@/components/ReportArea";
+import Sidebar from "@/components/Sidebar";
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+type State = {
+  sections: ReportSection[];
+  streaming: boolean;
+  error: string | null;
+  hasAnalysisSections: boolean;
+};
+
+type Action =
+  | { type: "START" }
+  | { type: "ADD_STOCK";       data: Extract<SSEEvent, { section: "stock" }>["data"] }
+  | { type: "ADD_MONTE_CARLO"; data: Extract<SSEEvent, { section: "monte_carlo" }>["data"] }
+  | { type: "ADD_RISK";        data: Extract<SSEEvent, { section: "risk" }>["data"] }
+  | { type: "ADD_CAVEATS" }
+  | { type: "APPEND_TOKEN";    token: string }
+  | { type: "DONE" }
+  | { type: "ERROR"; message: string };
+
+const initial: State = { sections: [], streaming: false, error: null, hasAnalysisSections: false };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "START":
+      return { sections: [], streaming: true, error: null, hasAnalysisSections: false };
+
+    case "ADD_STOCK":
+      return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "stock", data: action.data }] };
+
+    case "ADD_MONTE_CARLO":
+      return { ...state, sections: [...state.sections, { kind: "monte_carlo", data: action.data }] };
+
+    case "ADD_RISK":
+      return {
+        ...state,
+        sections: [
+          ...state.sections,
+          { kind: "risk", data: action.data },
+          { kind: "verdict", content: "", streaming: true },
+        ],
+      };
+
+    case "APPEND_TOKEN": {
+      const sections = [...state.sections];
+      const idx = sections.findLastIndex(
+        (s) => (s.kind === "verdict" || s.kind === "prose") && s.streaming
+      );
+      if (idx === -1) {
+        if (!state.hasAnalysisSections) {
+          const last = sections[sections.length - 1];
+          if (last?.kind === "prose" && last.streaming) {
+            sections[sections.length - 1] = { ...last, content: last.content + action.token };
+          } else {
+            sections.push({ kind: "prose", content: action.token, streaming: true });
+          }
+        }
+        return { ...state, sections };
+      }
+      const card = sections[idx] as Extract<ReportSection, { kind: "verdict" | "prose" }>;
+      sections[idx] = { ...card, content: card.content + action.token };
+      return { ...state, sections };
+    }
+
+    case "ADD_CAVEATS":
+      return { ...state, sections: [...state.sections, { kind: "caveats" }] };
+
+    case "DONE": {
+      const sections = state.sections.map((s) =>
+        (s.kind === "verdict" || s.kind === "prose") && s.streaming
+          ? { ...s, streaming: false }
+          : s
+      );
+      return { ...state, streaming: false, sections };
+    }
+
+    case "ERROR":
+      return { ...state, streaming: false, error: action.message };
+
+    default:
+      return state;
+  }
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function Terminal() {
+  const [state, dispatch] = useReducer(reducer, initial);
+
+  const handleQuery = useCallback(async (message: string) => {
+    dispatch({ type: "START" });
+    try {
+      for await (const event of streamChat(message)) {
+        switch (event.type) {
+          case "section":
+            if      (event.section === "stock")       dispatch({ type: "ADD_STOCK",       data: event.data });
+            else if (event.section === "monte_carlo") dispatch({ type: "ADD_MONTE_CARLO", data: event.data });
+            else if (event.section === "risk")        dispatch({ type: "ADD_RISK",        data: event.data });
+            else if (event.section === "caveats")     dispatch({ type: "ADD_CAVEATS" });
+            break;
+          case "token":  dispatch({ type: "APPEND_TOKEN", token: event.token }); break;
+          case "done":   dispatch({ type: "DONE" }); break;
+          case "error":  dispatch({ type: "ERROR", message: event.message }); break;
+        }
+      }
+    } catch (err) {
+      dispatch({ type: "ERROR", message: err instanceof Error ? err.message : "Network error" });
+    }
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      {/* Sidebar */}
+      <Sidebar onQuery={handleQuery} disabled={state.streaming} />
+
+      {/* Main panel */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+        {/* Header */}
+        <header style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "10px 20px",
+          borderBottom: "1px solid var(--border)",
+          flexShrink: 0,
+          background: "var(--surface)",
+        }}>
+          <span className="font-display" style={{ fontSize: 22, color: "var(--amber-bright)", textShadow: "0 0 12px var(--amber-dim)", letterSpacing: 1 }}>
+            ◆ FINSIM
+          </span>
+          <span style={{ color: "var(--text-faint)" }}>·</span>
+          <span style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: "0.5px" }}>
+            Quantitative Risk Terminal · Monte Carlo · VaR · GBM · RAG
+          </span>
+          {state.streaming && (
+            <div style={{ marginLeft: "auto", fontSize: 10, color: "var(--green)", textShadow: "0 0 8px rgba(57,255,20,0.6)", letterSpacing: 2, display: "flex", alignItems: "center", gap: 5, animation: "pulse-glow 1.4s ease-in-out infinite" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)", boxShadow: "0 0 6px var(--green)", display: "inline-block", animation: "pulse-dot 1.4s ease-in-out infinite" }} />
+              LIVE
+            </div>
+          )}
+        </header>
+
+        {/* Query bar */}
+        <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0, background: "var(--surface)" }}>
+          <QueryBar onSubmit={handleQuery} disabled={state.streaming} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        {/* Report area */}
+        <main style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+          <ReportArea sections={state.sections} error={state.error} />
+        </main>
+      </div>
     </div>
   );
 }
