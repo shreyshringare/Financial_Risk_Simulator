@@ -34,7 +34,7 @@ def fetch_stock_data(ticker: str, start: str = "2020-01-01") -> str:
     """Fetch historical stock price data for a ticker symbol. Use ticker suffixes for global markets: .NS (NSE India), .L (LSE), .TO (TSX). Returns price statistics as JSON string."""
     try:
         data = yf.download(ticker, start=start, progress=False)
-        prices = data['Close']
+        prices = data['Close'].squeeze()
         return json.dumps({
             "ticker": ticker,
             "start": str(prices.index.min().date()),
@@ -53,7 +53,7 @@ def run_monte_carlo_simulation(ticker: str, days: int = 252, simulations: int = 
     """Run Monte Carlo simulation for a stock. Returns simulation summary statistics as JSON string."""
     try:
         data = yf.download(ticker, start="2020-01-01", progress=False)
-        prices = data['Close']
+        prices = data['Close'].squeeze()
         paths = run_monte_carlo(prices, days, simulations)
         final_prices = paths[:, -1]
         return json.dumps({
@@ -74,7 +74,7 @@ def calculate_risk_metrics(ticker: str) -> str:
     """Calculate VaR, CVaR, Sharpe ratio, and max drawdown for a stock. Returns metrics as JSON string."""
     try:
         data = yf.download(ticker, start="2020-01-01", progress=False)
-        prices = data['Close']
+        prices = data['Close'].squeeze()
         paths = run_monte_carlo(prices, days=252, simulations=1000)
         var = calculate_var(paths)
         cvar = calculate_cvar(paths)
@@ -166,7 +166,7 @@ def run_stress_test_tool(ticker: str, scenario: str = "2008_financial_crisis") -
     """Run historical stress test on a stock. Scenarios: 2008_financial_crisis, covid_2020, dotcom_2000, russia_ukraine_2022, black_monday_1987. Returns stressed VaR vs baseline VaR as JSON."""
     try:
         data = yf.download(ticker, start="2020-01-01", progress=False)
-        prices = data['Close']
+        prices = data['Close'].squeeze()
         paths = run_monte_carlo(prices, simulations=1000, days=252)
         if scenario not in SCENARIOS:
             available = get_available_scenarios()
@@ -182,7 +182,7 @@ def export_analysis_report(ticker: str, format: str = "excel") -> str:
     """Export risk analysis to Excel or PowerBI format. format: 'excel' or 'powerbi'. Returns file path(s) as JSON."""
     try:
         data = yf.download(ticker, start="2020-01-01", progress=False)
-        prices = data['Close']
+        prices = data['Close'].squeeze()
         paths = run_monte_carlo(prices, days=252, simulations=1000)
         metrics = {
             "var": round(float(calculate_var(paths)), 4),
