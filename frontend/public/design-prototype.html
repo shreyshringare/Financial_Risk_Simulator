@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinSim — Quantitative Risk Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── CSS Variables ── */
+  :root {
+    --black:        #050505;
+    --surface:      #0A0A0A;
+    --card:         #0F0F0F;
+    --border:       rgba(255, 180, 60, 0.12);
+    --border-dim:   rgba(255, 180, 60, 0.06);
+
+    --amber:        #FFB43C;
+    --amber-bright: #FFD280;
+    --amber-dim:    rgba(255, 180, 60, 0.45);
+    --amber-glow:   rgba(255, 180, 60, 0.08);
+
+    --green:   #39FF14;
+    --yellow:  #FFD700;
+    --red:     #FF3131;
+
+    --text:    #F0C060;
+    --text-dim: rgba(240, 192, 96, 0.55);
+    --text-faint: rgba(240, 192, 96, 0.28);
+
+    --font-display: 'VT323', monospace;
+    --font-mono:    'IBM Plex Mono', monospace;
+  }
+
+  /* ── Base ── */
+  html, body { height: 100%; }
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    overflow: hidden;
+    cursor: default;
+  }
+
+  /* ── Scanline overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.18) 2px,
+      rgba(0,0,0,0.18) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── CRT edge vignette ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 60%,
+      rgba(0,0,0,0.65) 100%
+    );
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow-y: auto;
+    background: var(--surface);
+    scrollbar-width: none;
+  }
+  .sidebar::-webkit-scrollbar { display: none; }
+
+  .sidebar-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-dim);
+  }
+
+  .brand {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand-name {
+    font-family: var(--font-display);
+    font-size: 28px;
+    color: var(--amber-bright);
+    text-shadow: 0 0 20px var(--amber-dim), 0 0 40px rgba(255,180,60,0.2);
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .brand-sub {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+
+  .market-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    color: var(--amber-dim);
+    letter-spacing: 1px;
+  }
+
+  .cap-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .cap-list li {
+    font-size: 10px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cap-list li::before {
+    content: '▸';
+    color: var(--amber-dim);
+    font-size: 8px;
+  }
+
+  .quick-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .quick-btn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    background: none;
+    border: 1px solid transparent;
+    padding: 5px 8px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .quick-btn:hover {
+    color: var(--amber);
+    border-color: var(--border);
+    background: var(--amber-glow);
+  }
+
+  .disclaimer {
+    font-size: 9px;
+    color: var(--text-faint);
+    text-align: center;
+    padding: 12px 16px;
+    line-height: 1.5;
+    margin-top: auto;
+  }
+
+  /* ── Main ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header bar ── */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+  .header-logo {
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--amber-bright);
+    text-shadow: 0 0 12px var(--amber-dim);
+    letter-spacing: 1px;
+  }
+  .header-sep { color: var(--text-faint); }
+  .header-info {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+  }
+  .live-badge {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--green);
+    text-shadow: 0 0 8px rgba(57,255,20,0.6);
+    letter-spacing: 2px;
+    animation: pulse-glow 1.4s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse-dot 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  @keyframes pulse-dot {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(0.7); }
+  }
+
+  /* ── Query bar ── */
+  .query-bar {
+    display: flex;
+    gap: 10px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+  .query-input-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    background: var(--black);
+    transition: border-color 0.15s;
+  }
+  .query-input-wrap:focus-within {
+    border-color: var(--amber-dim);
+    box-shadow: 0 0 0 1px rgba(255,180,60,0.1), 0 0 20px rgba(255,180,60,0.04);
+  }
+  .prompt-char {
+    color: var(--amber);
+    font-size: 14px;
+    text-shadow: 0 0 8px var(--amber-dim);
+    flex-shrink: 0;
+  }
+  .query-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+    caret-color: var(--amber);
+  }
+  .query-input::placeholder { color: var(--text-faint); }
+  .run-btn {
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 2px;
+    padding: 8px 20px;
+    background: none;
+    border: 1px solid var(--amber-dim);
+    color: var(--amber);
+    cursor: pointer;
+    transition: all 0.12s;
+    text-shadow: 0 0 8px var(--amber-dim);
+  }
+  .run-btn:hover {
+    background: var(--amber-glow);
+    border-color: var(--amber);
+    box-shadow: 0 0 16px rgba(255,180,60,0.15);
+    text-shadow: 0 0 12px var(--amber);
+  }
+
+  /* ── Report area ── */
+  .report {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* ── Report header ── */
+  .report-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    animation: print-in 0.3s ease-out forwards;
+  }
+  .report-ticker {
+    font-family: var(--font-display);
+    font-size: 42px;
+    color: var(--amber-bright);
+    text-shadow: 0 0 24px var(--amber-dim), 0 0 48px rgba(255,180,60,0.1);
+    letter-spacing: 3px;
+    line-height: 1;
+  }
+  .report-name {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+  .report-exchange {
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+  }
+  .report-timestamp {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Section card ── */
+  .card {
+    border: 1px solid var(--border);
+    background: var(--card);
+    padding: 16px 18px;
+    position: relative;
+    animation: print-in 0.25s ease-out forwards;
+    opacity: 0;
+  }
+
+  /* Staggered reveal delays */
+  .card:nth-child(1) { animation-delay: 0.0s; }
+  .card:nth-child(2) { animation-delay: 0.15s; }
+  .card:nth-child(3) { animation-delay: 0.30s; }
+  .card:nth-child(4) { animation-delay: 0.45s; }
+  .card:nth-child(5) { animation-delay: 0.60s; }
+  .card:nth-child(6) { animation-delay: 0.75s; }
+
+  @keyframes print-in {
+    0%  { opacity: 0; transform: translateY(4px); clip-path: inset(0 0 100% 0); }
+    40% { opacity: 1; clip-path: inset(0 0 0 0); }
+    100%{ opacity: 1; transform: translateY(0); clip-path: inset(0 0 0 0); }
+  }
+
+  .card-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-label::before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 1px;
+    background: var(--amber-dim);
+  }
+  .card-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-dim);
+  }
+
+  /* Amber corner accent */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 24px;
+    background: var(--amber-dim);
+  }
+
+  /* ── Stock card ── */
+  .stock-price {
+    font-family: var(--font-display);
+    font-size: 48px;
+    color: var(--amber-bright);
+    text-shadow: 0 0 20px var(--amber-dim);
+    line-height: 1;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+  .stock-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .stat { }
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 3px;
+  }
+  .stat-value {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ── Monte Carlo card ── */
+  .mc-subtitle {
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+  }
+  .mc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .mc-stat-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 4px;
+  }
+  .mc-stat-value {
+    font-family: var(--font-display);
+    font-size: 28px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .mc-stat-value.mean { color: #5B9BD5; text-shadow: 0 0 12px rgba(91,155,213,0.4); }
+  .mc-stat-value.bear { color: var(--red); text-shadow: 0 0 12px rgba(255,49,49,0.3); }
+  .mc-stat-value.bull { color: var(--green); text-shadow: 0 0 12px rgba(57,255,20,0.3); }
+  .mc-std {
+    margin-top: 10px;
+    font-size: 10px;
+    color: var(--text-faint);
+  }
+
+  /* ── Risk metrics card ── */
+  .risk-layout {
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+  }
+  .risk-rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .risk-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-dim);
+  }
+  .risk-row:last-child { border-bottom: none; }
+  .risk-row-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+  .risk-row-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .risk-value {
+    font-family: var(--font-display);
+    font-size: 20px;
+    letter-spacing: 1px;
+    color: var(--text);
+  }
+  .risk-badge {
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 2px 7px;
+    border: 1px solid;
+    min-width: 64px;
+    text-align: center;
+  }
+  .risk-badge.LOW    { color: var(--green); border-color: rgba(57,255,20,0.3); background: rgba(57,255,20,0.05); text-shadow: 0 0 6px rgba(57,255,20,0.4); }
+  .risk-badge.MODERATE { color: var(--yellow); border-color: rgba(255,215,0,0.3); background: rgba(255,215,0,0.05); text-shadow: 0 0 6px rgba(255,215,0,0.3); }
+  .risk-badge.HIGH   { color: var(--red); border-color: rgba(255,49,49,0.3); background: rgba(255,49,49,0.05); text-shadow: 0 0 6px rgba(255,49,49,0.4); }
+
+  .overall-rating {
+    width: 100px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px;
+    background: rgba(255,180,60,0.02);
+  }
+  .overall-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .overall-value {
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 2px;
+  }
+  .overall-value.LOW      { color: var(--green); text-shadow: 0 0 12px rgba(57,255,20,0.5); }
+  .overall-value.MODERATE { color: var(--yellow); text-shadow: 0 0 12px rgba(255,215,0,0.4); }
+  .overall-value.HIGH     { color: var(--red); text-shadow: 0 0 12px rgba(255,49,49,0.5); }
+
+  /* ── Verdict card ── */
+  .verdict-text {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.9;
+    letter-spacing: 0.2px;
+  }
+  .verdict-text p + p { margin-top: 10px; }
+  .verdict-text strong { color: var(--text); font-weight: 600; }
+
+  /* Blinking cursor */
+  .cursor {
+    display: inline-block;
+    width: 8px; height: 14px;
+    background: var(--amber);
+    animation: blink-cursor 0.9s step-end infinite;
+    vertical-align: text-bottom;
+    margin-left: 2px;
+    box-shadow: 0 0 6px var(--amber);
+  }
+  @keyframes blink-cursor {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* ── Caveats card ── */
+  .caveats-card {
+    border: 1px solid var(--border-dim);
+    background: rgba(255,180,60,0.02);
+    padding: 12px 16px;
+    animation: print-in 0.25s ease-out 0.75s forwards;
+    opacity: 0;
+  }
+  .caveats-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .caveats-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .caveats-list li {
+    font-size: 10px;
+    color: var(--text-faint);
+    display: flex;
+    gap: 6px;
+  }
+  .caveats-list li::before {
+    content: '▸';
+    color: var(--amber-dim);
+    flex-shrink: 0;
+  }
+  .warn-line {
+    margin-top: 6px;
+    font-size: 10px;
+    color: rgba(255,215,0,0.35);
+    border-top: 1px solid var(--border-dim);
+    padding-top: 6px;
+  }
+
+  /* ── Scrollbar ── */
+  .report::-webkit-scrollbar { width: 4px; }
+  .report::-webkit-scrollbar-track { background: transparent; }
+  .report::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ── Empty state ── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    animation: fade-in 0.5s ease-out forwards;
+  }
+  .empty-glyph {
+    font-family: var(--font-display);
+    font-size: 72px;
+    color: var(--text-faint);
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(255,180,60,0.1);
+  }
+  .empty-text {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-name">◆ FINSIM</div>
+      <div class="brand-sub">Risk Terminal v2.0</div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Markets</div>
+      <div class="market-badges">
+        <span class="badge">🇺🇸 NYSE</span>
+        <span class="badge">🇮🇳 NSE .NS</span>
+        <span class="badge">🇬🇧 LSE .L</span>
+        <span class="badge">🇨🇦 TSX .TO</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Capabilities</div>
+      <ul class="cap-list">
+        <li>VaR · CVaR · Sharpe · Drawdown</li>
+        <li>Monte Carlo GBM (1,000 paths)</li>
+        <li>Portfolio Correlation + VaR</li>
+        <li>Stress Testing (5 crises)</li>
+        <li>Markowitz Efficient Frontier</li>
+        <li>RSS News + Sentiment</li>
+        <li>Excel &amp; PowerBI Export</li>
+      </ul>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Quick Queries</div>
+      <div class="quick-list">
+        <button class="quick-btn">What is the VaR for AAPL?</button>
+        <button class="quick-btn">Run Monte Carlo on RELIANCE.NS</button>
+        <button class="quick-btn">Analyze portfolio: AAPL, MSFT, TSLA</button>
+        <button class="quick-btn">2008 crisis stress test on TSLA</button>
+        <button class="quick-btn">Efficient frontier for AAPL, GOOGL, MSFT</button>
+        <button class="quick-btn">Latest news for NVDA</button>
+        <button class="quick-btn">Export AAPL report to Excel</button>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      ⚠ Educational use only.<br>Not financial advice.
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+
+    <!-- Header -->
+    <header class="header">
+      <span class="header-logo">◆ FINSIM</span>
+      <span class="header-sep">/</span>
+      <span class="header-info">QUANTITATIVE RISK TERMINAL · MONTE CARLO · VAR · GBM · RAG</span>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        LIVE
+      </div>
+    </header>
+
+    <!-- Query bar -->
+    <div class="query-bar">
+      <div class="query-input-wrap">
+        <span class="prompt-char">▶</span>
+        <input class="query-input" type="text"
+          value="What is the VaR for AAPL?"
+          placeholder="Ask about any stock or portfolio...">
+      </div>
+      <button class="run-btn">RUN ▶</button>
+    </div>
+
+    <!-- Report -->
+    <div class="report">
+
+      <!-- Report header -->
+      <div class="report-header">
+        <span class="report-ticker">AAPL</span>
+        <span class="report-name">Apple Inc.</span>
+        <span class="report-exchange">NASDAQ</span>
+        <span class="report-timestamp">2026-06-24 · 14:32:08 UTC</span>
+      </div>
+
+      <!-- Stock Overview -->
+      <div class="card">
+        <div class="card-label">Stock Overview</div>
+        <div class="stock-price">$297.54</div>
+        <div class="stock-grid">
+          <div class="stat">
+            <div class="stat-label">Period</div>
+            <div class="stat-value">Jan 2020 – Jun 2026</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Trading Days</div>
+            <div class="stat-value">1,627</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Range</div>
+            <div class="stat-value">$54.16 – $315.20</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monte Carlo -->
+      <div class="card">
+        <div class="card-label">Monte Carlo Simulation</div>
+        <div class="mc-subtitle">1,000 paths · 252 trading days · Geometric Brownian Motion</div>
+        <div class="mc-grid">
+          <div>
+            <div class="mc-stat-label">Mean Final Price</div>
+            <div class="mc-stat-value mean">$341.20</div>
+          </div>
+          <div>
+            <div class="mc-stat-label">5th Percentile (Bear)</div>
+            <div class="mc-stat-value bear">$198.40</div>
+          </div>
+          <div>
+            <div class="mc-stat-label">95th Percentile (Bull)</div>
+            <div class="mc-stat-value bull">$512.80</div>
+          </div>
+        </div>
+        <div class="mc-std">Std Dev of terminal prices: $62.40</div>
+      </div>
+
+      <!-- Risk Metrics -->
+      <div class="card">
+        <div class="card-label">Risk Metrics</div>
+        <div class="risk-layout">
+          <div class="risk-rows">
+            <div class="risk-row">
+              <span class="risk-row-label">Value at Risk (95%)</span>
+              <div class="risk-row-right">
+                <span class="risk-value">-3.04%</span>
+                <span class="risk-badge LOW">LOW</span>
+              </div>
+            </div>
+            <div class="risk-row">
+              <span class="risk-row-label">CVaR / Expected Shortfall</span>
+              <div class="risk-row-right">
+                <span class="risk-value">-3.87%</span>
+                <span class="risk-badge LOW">LOW</span>
+              </div>
+            </div>
+            <div class="risk-row">
+              <span class="risk-row-label">Sharpe Ratio</span>
+              <div class="risk-row-right">
+                <span class="risk-value">0.7928</span>
+                <span class="risk-badge MODERATE">MODERATE</span>
+              </div>
+            </div>
+            <div class="risk-row">
+              <span class="risk-row-label">Maximum Drawdown</span>
+              <div class="risk-row-right">
+                <span class="risk-value">-33.36%</span>
+                <span class="risk-badge HIGH">HIGH</span>
+              </div>
+            </div>
+          </div>
+          <div class="overall-rating">
+            <div class="overall-label">Risk Rating</div>
+            <div class="overall-value MODERATE">MOD</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analyst Verdict -->
+      <div class="card">
+        <div class="card-label">Analyst Verdict</div>
+        <div class="verdict-text">
+          <p>AAPL presents a <strong>moderate risk profile</strong> with a 95% daily VaR of -3.04%, implying that on 19 of 20 trading days, losses will not exceed this threshold. The CVaR of -3.87% indicates that when tail events occur, the average loss extends only marginally beyond the VaR boundary — a sign of relatively contained tail risk for a mega-cap equity.</p>
+          <p>The Sharpe ratio of 0.79 suggests <strong>adequate but not exceptional risk-adjusted returns</strong>. While positive, it falls short of the 1.0 threshold that would indicate truly efficient risk compensation. Investors are being compensated for volatility, but not generously.</p>
+          <p>The maximum drawdown of -33.36% represents the <strong>primary risk concern</strong>. An investor who entered at the peak would have endured a one-third loss before recovery — consistent with broad market dislocations (COVID-19 crash, 2022 rate-hike cycle). Position sizing should account for this historical precedent.<span class="cursor"></span></p>
+        </div>
+      </div>
+
+      <!-- Caveats -->
+      <div class="caveats-card">
+        <div class="caveats-label">Model Assumptions &amp; Caveats</div>
+        <ul class="caveats-list">
+          <li>GBM assumes log-normally distributed returns, constant volatility, no price jumps</li>
+          <li>Real markets exhibit fat tails, volatility clustering, and regime changes</li>
+          <li>CVaR exceeds VaR in severity — it captures the average of tail losses, not just the threshold</li>
+          <li>Historical Sharpe is backward-looking; past risk-adjusted returns do not predict future performance</li>
+        </ul>
+        <div class="warn-line">⚠ Educational use only. Not financial advice. All figures are simulated.</div>
+      </div>
+
+    </div><!-- /report -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+</body>
+</html>
