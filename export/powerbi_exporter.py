@@ -28,7 +28,7 @@ def export_for_powerbi(
         ticker:           Stock ticker symbol (e.g. "AAPL").
         prices:           Historical closing prices as a pd.Series with a DatetimeIndex.
         simulated_paths:  Monte Carlo paths array of shape (n_simulations, n_days).
-        risk_metrics:     Dict with keys: var_95, cvar_95, sharpe_ratio, max_drawdown.
+        risk_metrics:     Dict with keys: var, cvar, sharpe, max_drawdown.
         stress_results:   Optional DataFrame of stress-test results.
         correlation_df:   Optional square correlation matrix DataFrame (tickers as index/columns).
         output_dir:       Directory where CSV files will be written.
@@ -66,21 +66,21 @@ def export_for_powerbi(
         {
             "ticker": ticker,
             "metric_name": "VaR_95",
-            "value": risk_metrics.get("var_95", np.nan),
+            "value": risk_metrics.get("var", np.nan),
             "interpretation": "Maximum expected loss at 95% confidence",
             "report_date": report_date,
         },
         {
             "ticker": ticker,
             "metric_name": "CVaR_95",
-            "value": risk_metrics.get("cvar_95", np.nan),
+            "value": risk_metrics.get("cvar", np.nan),
             "interpretation": "Average loss beyond VaR threshold",
             "report_date": report_date,
         },
         {
             "ticker": ticker,
             "metric_name": "Sharpe_Ratio",
-            "value": risk_metrics.get("sharpe_ratio", np.nan),
+            "value": risk_metrics.get("sharpe", np.nan),
             "interpretation": "Risk-adjusted return (>1.0 good)",
             "report_date": report_date,
         },

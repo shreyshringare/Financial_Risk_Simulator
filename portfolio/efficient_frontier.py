@@ -11,7 +11,8 @@ from typing import Tuple, Dict, List
 def compute_efficient_frontier(
     prices_df: pd.DataFrame,
     n_portfolios: int = 5000,
-    risk_free_rate: float = 0.02
+    risk_free_rate: float = 0.02,
+    seed: int = 42
 ) -> pd.DataFrame:
     """
     Generate efficient frontier via Monte Carlo random portfolio sampling.
@@ -20,11 +21,13 @@ def compute_efficient_frontier(
         prices_df: Multi-ticker price DataFrame (dates x tickers)
         n_portfolios: Number of random portfolios to simulate
         risk_free_rate: Annual risk-free rate for Sharpe calculation
+        seed: Random seed for reproducibility
 
     Returns:
         DataFrame with columns: weights_{ticker}..., expected_return, volatility, sharpe_ratio
         Sorted by volatility ascending.
     """
+    np.random.seed(seed)
     # Step 1: Daily log returns
     log_returns = np.log(prices_df / prices_df.shift(1)).dropna()
 

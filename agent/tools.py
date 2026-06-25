@@ -19,7 +19,7 @@ def _sanitize_ticker(ticker: str) -> str:
     return t
 
 from simulation.monte_carlo import run_monte_carlo
-from simulation.risk_metrics import calculate_var, calculate_cvar, calculate_sharpe, calculate_max_drawdown
+from simulation.risk_metrics import calculate_var, calculate_cvar, calculate_sharpe, calculate_max_drawdown, calculate_historical_var, calculate_historical_cvar
 from rag.knowledge_base import get_or_create_knowledge_base, query_knowledge_base
 from portfolio.correlation import fetch_portfolio_data, calculate_correlation_matrix, calculate_portfolio_var
 from simulation.stress_test import run_stress_test, get_available_scenarios, SCENARIOS
@@ -87,17 +87,17 @@ def calculate_risk_metrics(ticker: str) -> str:
     try:
         ticker = _sanitize_ticker(ticker)
         data = yf.download(ticker, start="2020-01-01", progress=False)
-        prices = data['Close'].squeeze()
+        prices = data['Close'].squeeze().dropna()
         paths = run_monte_carlo(prices, days=252, simulations=1000)
-        var = calculate_var(paths)
-        cvar = calculate_cvar(paths)
-        sharpe = calculate_sharpe(prices)
-        max_drawdown = calculate_max_drawdown(prices)
         return json.dumps({
-            "var": round(float(var), 4),
-            "cvar": round(float(cvar), 4),
-            "sharpe": round(float(sharpe), 4),
-            "max_drawdown": round(float(max_drawdown), 4),
+            "var": round(float(calculate_historical_var(prices)), 4),
+            "cvar": round(float(calculate_historical_cvar(prices)), 4),
+            "var_hist": round(float(calculate_historical_var(prices)), 4),
+            "cvar_hist": round(float(calculate_historical_cvar(prices)), 4),
+            "var_sim": round(float(calculate_var(paths)), 4),
+            "cvar_sim": round(float(calculate_cvar(paths)), 4),
+            "sharpe": round(float(calculate_sharpe(prices)), 4),
+            "max_drawdown": round(float(calculate_max_drawdown(prices)), 4),
         })
     except Exception as e:
         return json.dumps({"error": str(e)})
@@ -197,16 +197,17 @@ def export_analysis_report(ticker: str, format: str = "excel") -> str:
     try:
         ticker = _sanitize_ticker(ticker)
         data = yf.download(ticker, start="2020-01-01", progress=False)
-        prices = data['Close'].squeeze()
-        paths = run_monte_carlo(prices, days=252, simulations=1000)
+        prices = data['Close'].squeeze().dropna()
+        paths = run_monte_carlo(prices, days=252, simulations=1000)  # seed=42 default
         metrics = {
-            "var": round(float(calculate_var(paths)), 4),
-            "cvar": round(float(calculate_cvar(paths)), 4),
+            "var": round(float(calculate_historical_var(prices)), 4),
+            "cvar": round(float(calculate_historical_cvar(prices)), 4),
+            "var_sim": round(float(calculate_var(paths)), 4),
+            "cvar_sim": round(float(calculate_cvar(paths)), 4),
             "sharpe": round(float(calculate_sharpe(prices)), 4),
             "max_drawdown": round(float(calculate_max_drawdown(prices)), 4),
         }
-        from simulation.stress_test import compare_scenarios
-        stress_df = compare_scenarios(paths)
+        stress_df = None
         if format == "excel":
             path = export_risk_report(ticker, paths, metrics, stress_df)
             return json.dumps({"format": "excel", "file": path})

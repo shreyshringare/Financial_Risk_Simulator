@@ -70,3 +70,23 @@ def calculate_max_drawdown(prices: pd.Series) -> float:
     """
     drawdown = (prices / prices.cummax() - 1).min()
     return float(drawdown)
+
+
+def calculate_historical_var(prices: pd.Series, confidence: float = 0.95) -> float:
+    """
+    Historical simulation VaR.
+    Uses actual realized daily returns — no distributional assumption.
+    Industry standard for equity risk.
+    """
+    returns = prices.pct_change().dropna()
+    return float(np.percentile(returns, (1 - confidence) * 100))
+
+
+def calculate_historical_cvar(prices: pd.Series, confidence: float = 0.95) -> float:
+    """
+    Historical simulation CVaR (Expected Shortfall).
+    Mean of realized returns below the historical VaR threshold.
+    """
+    returns = prices.pct_change().dropna()
+    threshold = calculate_historical_var(prices, confidence)
+    return float(returns[returns <= threshold].mean())

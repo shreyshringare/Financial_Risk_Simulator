@@ -21,6 +21,10 @@ export type MonteCarloData = {
 export type RiskData = {
   var: number;
   cvar: number;
+  var_hist: number;
+  cvar_hist: number;
+  var_sim: number;
+  cvar_sim: number;
   sharpe: number;
   max_drawdown: number;
 };
