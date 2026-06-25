@@ -30,6 +30,7 @@ def _build_llm():
             max_tokens=2000,
             api_key=groq_key,
             streaming=True,
+            request_timeout=60,
         )
     # Fallback to OpenAI
     from langchain_openai import ChatOpenAI

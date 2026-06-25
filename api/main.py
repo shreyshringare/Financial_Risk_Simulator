@@ -117,8 +117,15 @@ async def chat(req: ChatRequest):
                 await callback.queue.put(None)
 
         task = asyncio.create_task(run())
-        async for event_str in callback.aiter():
-            yield event_str
-        await task
+        try:
+            async for event_str in callback.aiter():
+                yield event_str
+            await task
+        except asyncio.CancelledError:
+            task.cancel()
+            raise
+        finally:
+            if not task.done():
+                task.cancel()
 
     return EventSourceResponse(generate())
