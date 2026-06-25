@@ -137,8 +137,10 @@ def explain_risk(metrics_json: str) -> str:
         f"A Sharpe ratio above 1.0 is generally considered good; above 2.0 is excellent; below 0 means the investment underperforms the risk-free rate.\n\n"
         f"Maximum Drawdown: -{md_pct:.2f}%. This is the largest peak-to-trough decline in the historical price series. "
         f"It represents the worst loss an investor would have suffered if they bought at the peak and held through the trough.\n\n"
-        f"Important caveat: These metrics are derived from a Geometric Brownian Motion (GBM) simulation, which assumes "
-        f"log-normally distributed returns, constant volatility, and no sudden price jumps. "
+        f"Important caveat: VaR and CVaR are derived from historical simulation — actual realized daily returns with no distributional assumption. "
+        f"A companion GBM simulation (Monte Carlo) is also available for comparison. "
+        f"Both methods have limitations: historical simulation assumes the past return distribution is representative of the future, "
+        f"while GBM assumes log-normally distributed returns and constant volatility. "
         f"In reality, markets exhibit fat tails, volatility clustering, and regime changes — so actual tail losses may be worse than these numbers suggest."
     )
 
