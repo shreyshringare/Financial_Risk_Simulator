@@ -55,7 +55,7 @@ def export_for_powerbi(
         "rolling_90d_vol": log_returns.rolling(90).std() * np.sqrt(252),
     })
 
-    prices_path = os.path.join(output_dir, f"{ticker}_prices.csv")
+    prices_path = os.path.join(output_dir, os.path.basename(f"{ticker}_prices.csv"))
     prices_df.to_csv(prices_path, index=False)
     exported["prices"] = prices_path
 
@@ -94,7 +94,7 @@ def export_for_powerbi(
     ]
 
     risk_metrics_df = pd.DataFrame(metrics_rows)
-    risk_metrics_path = os.path.join(output_dir, f"{ticker}_risk_metrics.csv")
+    risk_metrics_path = os.path.join(output_dir, os.path.basename(f"{ticker}_risk_metrics.csv"))
     risk_metrics_df.to_csv(risk_metrics_path, index=False)
     exported["risk_metrics"] = risk_metrics_path
 
@@ -119,7 +119,7 @@ def export_for_powerbi(
         "percentile_bucket": bucket_labels.values,
     })
 
-    mc_summary_path = os.path.join(output_dir, f"{ticker}_monte_carlo_summary.csv")
+    mc_summary_path = os.path.join(output_dir, os.path.basename(f"{ticker}_monte_carlo_summary.csv"))
     mc_summary_df.to_csv(mc_summary_path, index=False)
     exported["monte_carlo_summary"] = mc_summary_path
 
@@ -142,7 +142,7 @@ def export_for_powerbi(
         })
 
     mc_percentiles_df = pd.DataFrame(percentile_rows)
-    mc_percentiles_path = os.path.join(output_dir, f"{ticker}_monte_carlo_percentiles.csv")
+    mc_percentiles_path = os.path.join(output_dir, os.path.basename(f"{ticker}_monte_carlo_percentiles.csv"))
     mc_percentiles_df.to_csv(mc_percentiles_path, index=False)
     exported["monte_carlo_percentiles"] = mc_percentiles_path
 
@@ -153,7 +153,7 @@ def export_for_powerbi(
         stress_df = stress_results.copy()
         stress_df["ticker"] = ticker
         stress_df["report_date"] = report_date
-        stress_path = os.path.join(output_dir, f"{ticker}_stress_tests.csv")
+        stress_path = os.path.join(output_dir, os.path.basename(f"{ticker}_stress_tests.csv"))
         stress_df.to_csv(stress_path, index=False)
         exported["stress_tests"] = stress_path
 
@@ -178,7 +178,7 @@ def export_for_powerbi(
             return "Negative"
 
         corr_long["strength"] = corr_long["correlation"].apply(_strength)
-        corr_path = os.path.join(output_dir, f"{ticker}_correlation.csv")
+        corr_path = os.path.join(output_dir, os.path.basename(f"{ticker}_correlation.csv"))
         corr_long.to_csv(corr_path, index=False)
         exported["correlation"] = corr_path
 

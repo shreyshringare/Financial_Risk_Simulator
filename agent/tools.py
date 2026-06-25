@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import numpy as np
 import pandas as pd
@@ -7,6 +8,15 @@ from langchain.tools import tool
 from dotenv import load_dotenv
 
 load_dotenv()
+
+_TICKER_RE = re.compile(r'^[A-Z0-9.\^-]{1,12}$')
+
+def _sanitize_ticker(ticker: str) -> str:
+    """Validate and normalise a ticker symbol. Raises ValueError on invalid input."""
+    t = ticker.strip().upper()
+    if not _TICKER_RE.match(t):
+        raise ValueError(f"Invalid ticker symbol: '{ticker}'")
+    return t
 
 from simulation.monte_carlo import run_monte_carlo
 from simulation.risk_metrics import calculate_var, calculate_cvar, calculate_sharpe, calculate_max_drawdown
@@ -33,6 +43,7 @@ def get_vectorstore():
 def fetch_stock_data(ticker: str, start: str = "2020-01-01") -> str:
     """Fetch historical stock price data for a ticker symbol. Use ticker suffixes for global markets: .NS (NSE India), .L (LSE), .TO (TSX). Returns price statistics as JSON string."""
     try:
+        ticker = _sanitize_ticker(ticker)
         data = yf.download(ticker, start=start, progress=False)
         prices = data['Close'].squeeze()
         return json.dumps({
@@ -45,13 +56,14 @@ def fetch_stock_data(ticker: str, start: str = "2020-01-01") -> str:
             "max_price": round(float(prices.max()), 2),
         })
     except Exception as e:
-        return json.dumps({"error": f"Could not fetch {ticker}: {str(e)}"})
+        return json.dumps({"error": str(e)})
 
 
 @tool
 def run_monte_carlo_simulation(ticker: str, days: int = 252, simulations: int = 1000) -> str:
     """Run Monte Carlo simulation for a stock. Returns simulation summary statistics as JSON string."""
     try:
+        ticker = _sanitize_ticker(ticker)
         data = yf.download(ticker, start="2020-01-01", progress=False)
         prices = data['Close'].squeeze()
         paths = run_monte_carlo(prices, days, simulations)
@@ -66,13 +78,14 @@ def run_monte_carlo_simulation(ticker: str, days: int = 252, simulations: int = 
             "percentile_95": round(float(np.percentile(final_prices, 95)), 2),
         })
     except Exception as e:
-        return json.dumps({"error": f"Monte Carlo simulation failed for {ticker}: {str(e)}"})
+        return json.dumps({"error": str(e)})
 
 
 @tool
 def calculate_risk_metrics(ticker: str) -> str:
     """Calculate VaR, CVaR, Sharpe ratio, and max drawdown for a stock. Returns metrics as JSON string."""
     try:
+        ticker = _sanitize_ticker(ticker)
         data = yf.download(ticker, start="2020-01-01", progress=False)
         prices = data['Close'].squeeze()
         paths = run_monte_carlo(prices, days=252, simulations=1000)
@@ -147,7 +160,7 @@ def rag_financial_query(query: str) -> str:
 def analyze_portfolio(tickers_csv: str) -> str:
     """Analyze portfolio correlation and multi-ticker risk. Input: comma-separated tickers (e.g. 'AAPL,MSFT,TSLA'). Returns correlation matrix and portfolio VaR as JSON."""
     try:
-        tickers = [t.strip().upper() for t in tickers_csv.split(",")]
+        tickers = [_sanitize_ticker(t) for t in tickers_csv.split(",")]
         portfolio_data = fetch_portfolio_data(tickers)
         correlation_matrix = calculate_correlation_matrix(portfolio_data)
         weights = [1.0 / len(tickers)] * len(tickers)
@@ -165,6 +178,7 @@ def analyze_portfolio(tickers_csv: str) -> str:
 def run_stress_test_tool(ticker: str, scenario: str = "2008_financial_crisis") -> str:
     """Run historical stress test on a stock. Scenarios: 2008_financial_crisis, covid_2020, dotcom_2000, russia_ukraine_2022, black_monday_1987. Returns stressed VaR vs baseline VaR as JSON."""
     try:
+        ticker = _sanitize_ticker(ticker)
         data = yf.download(ticker, start="2020-01-01", progress=False)
         prices = data['Close'].squeeze()
         paths = run_monte_carlo(prices, simulations=1000, days=252)
@@ -181,6 +195,7 @@ def run_stress_test_tool(ticker: str, scenario: str = "2008_financial_crisis") -
 def export_analysis_report(ticker: str, format: str = "excel") -> str:
     """Export risk analysis to Excel or PowerBI format. format: 'excel' or 'powerbi'. Returns file path(s) as JSON."""
     try:
+        ticker = _sanitize_ticker(ticker)
         data = yf.download(ticker, start="2020-01-01", progress=False)
         prices = data['Close'].squeeze()
         paths = run_monte_carlo(prices, days=252, simulations=1000)
@@ -208,6 +223,7 @@ def export_analysis_report(ticker: str, format: str = "excel") -> str:
 def get_financial_news(ticker: str) -> str:
     """Fetch latest financial news headlines for a stock ticker. Returns top 5 articles with titles, dates, summaries, and sentiment analysis (bullish/bearish/neutral)."""
     try:
+        ticker = _sanitize_ticker(ticker)
         articles = fetch_ticker_news(ticker, max_articles=5)
         sentiment = get_news_sentiment_keywords(articles)
         news_text = format_news_for_agent(articles)
@@ -219,14 +235,14 @@ def get_financial_news(ticker: str) -> str:
         )
         return news_text + sentiment_summary
     except Exception as e:
-        return f"Could not fetch news for {ticker}: {str(e)}"
+        return json.dumps({"error": str(e)})
 
 
 @tool
 def compute_efficient_frontier_tool(tickers_csv: str) -> str:
     """Compute Markowitz efficient frontier for a portfolio. Input: comma-separated tickers (e.g. 'AAPL,MSFT,TSLA'). Returns optimal portfolios (max Sharpe, min variance) with weights as JSON."""
     try:
-        tickers = [t.strip().upper() for t in tickers_csv.split(",")]
+        tickers = [_sanitize_ticker(t) for t in tickers_csv.split(",")]
         portfolio_data = fetch_portfolio_data(tickers)
         prices_df = portfolio_data if isinstance(portfolio_data, pd.DataFrame) else pd.DataFrame(portfolio_data)
         frontier_df = compute_efficient_frontier(prices_df, n_portfolios=3000)

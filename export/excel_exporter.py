@@ -19,6 +19,8 @@ from openpyxl.chart.series import DataPoint
 # ---------------------------------------------------------------------------
 # Style constants
 # ---------------------------------------------------------------------------
+_FORMULA_PREFIXES = ('=', '+', '-', '@')
+
 HEADER_FILL = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
 HEADER_FONT = Font(color="FFFFFF", bold=True, size=11)
 ACCENT_FILL = PatternFill(start_color="D6E4F0", end_color="D6E4F0", fill_type="solid")
@@ -335,7 +337,7 @@ def export_risk_report(
         # Column headers (row 1, starting col 2)
         for col_idx, t in enumerate(tickers, start=2):
             c = ws_corr.cell(row=1, column=col_idx)
-            c.value = t
+            c.value = ("'" + t) if t.startswith(_FORMULA_PREFIXES) else t
             c.fill = HEADER_FILL
             c.font = HEADER_FONT
             c.alignment = Alignment(horizontal="center")
@@ -349,7 +351,7 @@ def export_risk_report(
             row_num = row_offset + 2
             # Row label
             label_cell = ws_corr.cell(row=row_num, column=1)
-            label_cell.value = row_ticker
+            label_cell.value = ("'" + row_ticker) if row_ticker.startswith(_FORMULA_PREFIXES) else row_ticker
             label_cell.fill = HEADER_FILL
             label_cell.font = HEADER_FONT
             label_cell.alignment = Alignment(horizontal="center")
@@ -377,7 +379,7 @@ def export_risk_report(
     # ------------------------------------------------------------------
     os.makedirs(output_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{ticker}_risk_report_{timestamp}.xlsx"
+    filename = os.path.basename(f"{ticker}_risk_report_{timestamp}.xlsx")
     filepath = os.path.join(output_dir, filename)
     wb.save(filepath)
 

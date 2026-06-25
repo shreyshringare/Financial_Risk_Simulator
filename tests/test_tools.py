@@ -6,9 +6,30 @@ import numpy as np
 from agent.tools import fetch_stock_data, calculate_risk_metrics
 
 
+def test_sanitize_ticker_valid():
+    from agent.tools import _sanitize_ticker
+    assert _sanitize_ticker("aapl") == "AAPL"
+    assert _sanitize_ticker(" msft ") == "MSFT"
+    assert _sanitize_ticker("^GSPC") == "^GSPC"
+    assert _sanitize_ticker("TCS.NS") == "TCS.NS"
+    assert _sanitize_ticker("VODAFONE.L") == "VODAFONE.L"
+
+
+def test_sanitize_ticker_invalid():
+    from agent.tools import _sanitize_ticker
+    with pytest.raises(ValueError):
+        _sanitize_ticker("../../etc/passwd")
+    with pytest.raises(ValueError):
+        _sanitize_ticker("")
+    with pytest.raises(ValueError):
+        _sanitize_ticker("A" * 13)
+    with pytest.raises(ValueError):
+        _sanitize_ticker("AAPL; DROP TABLE")
+
+
 def test_yfinance_error_dict():
     with patch("yfinance.download", side_effect=Exception("Network error")):
-        result = fetch_stock_data.func("INVALIDTICKER_XYZ")
+        result = fetch_stock_data.func("ZZZZZ")
     parsed = json.loads(result)
     assert "error" in parsed
 
