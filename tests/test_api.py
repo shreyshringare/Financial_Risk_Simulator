@@ -1,13 +1,21 @@
-import pytest
-from unittest.mock import patch, MagicMock
+import sys
+from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 
 
 def test_health():
-    with patch("agent.agent.create_agent", return_value=MagicMock()):
+    # Prevent langchain (Pydantic v1, Python 3.14 incompatible) from being
+    # imported during the test. The health endpoint does not use the agent.
+    mock_agent_module = MagicMock()
+    with __import__("unittest.mock", fromlist=["patch"]).patch.dict(
+        sys.modules, {"agent.agent": mock_agent_module}
+    ):
         from api.main import app
-        with TestClient(app) as client:
-            response = client.get("/api/health")
+        # No context manager — skips lifespan (agent startup) entirely.
+        # Health endpoint needs no agent state.
+        client = TestClient(app)
+        response = client.get("/api/health")
+
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
