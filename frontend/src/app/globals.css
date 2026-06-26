@@ -66,6 +66,10 @@
   0%, 100% { transform: scale(1); }
   50%       { transform: scale(0.7); }
 }
+@keyframes progress-fill {
+  0%   { width: 0%; }
+  100% { width: 75%; }
+}
 
 /* ── Base ── */
 html, body { height: 100%; }
