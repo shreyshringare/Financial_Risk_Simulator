@@ -1,11 +1,12 @@
 "use client";
 
-import { useReducer, useCallback } from "react";
+import { useReducer, useCallback, useState, useEffect } from "react";
 import type { ReportSection, SSEEvent } from "@/types/events";
 import { streamChat } from "@/lib/sseClient";
 import QueryBar from "@/components/QueryBar";
 import ReportArea from "@/components/ReportArea";
 import Sidebar from "@/components/Sidebar";
+import StatusBar from "@/components/StatusBar";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -14,6 +15,7 @@ type State = {
   streaming: boolean;
   error: string | null;
   hasAnalysisSections: boolean;
+  lastToken: string;
 };
 
 type Action =
@@ -26,12 +28,18 @@ type Action =
   | { type: "DONE" }
   | { type: "ERROR"; message: string };
 
-const initial: State = { sections: [], streaming: false, error: null, hasAnalysisSections: false };
+const initial: State = {
+  sections: [],
+  streaming: false,
+  error: null,
+  hasAnalysisSections: false,
+  lastToken: "",
+};
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "START":
-      return { sections: [], streaming: true, error: null, hasAnalysisSections: false };
+      return { sections: [], streaming: true, error: null, hasAnalysisSections: false, lastToken: "" };
 
     case "ADD_STOCK":
       return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "stock", data: action.data }] };
@@ -63,11 +71,11 @@ function reducer(state: State, action: Action): State {
             sections.push({ kind: "prose", content: action.token, streaming: true });
           }
         }
-        return { ...state, sections };
+        return { ...state, sections, lastToken: action.token };
       }
       const card = sections[idx] as Extract<ReportSection, { kind: "verdict" | "prose" }>;
       sections[idx] = { ...card, content: card.content + action.token };
-      return { ...state, sections };
+      return { ...state, sections, lastToken: action.token };
     }
 
     case "ADD_CAVEATS":
@@ -94,8 +102,18 @@ function reducer(state: State, action: Action): State {
 
 export default function Terminal() {
   const [state, dispatch] = useReducer(reducer, initial);
+  const [queryCount, setQueryCount] = useState(0);
+  const [model, setModel] = useState("groq/llama-3.3-70b");
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/health")
+      .then((r) => r.json())
+      .then((d) => { if (d.model) setModel(d.model); })
+      .catch(() => {});
+  }, []);
 
   const handleQuery = useCallback(async (message: string) => {
+    setQueryCount((c) => c + 1);
     dispatch({ type: "START" });
     try {
       for await (const event of streamChat(message)) {
@@ -118,13 +136,10 @@ export default function Terminal() {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      {/* Sidebar */}
       <Sidebar onQuery={handleQuery} disabled={state.streaming} />
 
-      {/* Main panel */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
-        {/* Header */}
         <header style={{
           display: "flex", alignItems: "center", gap: 12,
           padding: "10px 20px",
@@ -133,29 +148,49 @@ export default function Terminal() {
           background: "var(--surface)",
         }}>
           <span className="font-display" style={{ fontSize: 22, color: "var(--amber-bright)", textShadow: "0 0 12px var(--amber-dim)", letterSpacing: 1 }}>
-            ◆ FINSIM
+            ◆ FINSIM ANALYST TERMINAL
+          </span>
+          <span style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: "0.5px" }}>
+            v2.0
           </span>
           <span style={{ color: "var(--text-faint)" }}>·</span>
           <span style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: "0.5px" }}>
-            Quantitative Risk Terminal · Monte Carlo · VaR · GBM · RAG
+            Monte Carlo · VaR · GBM · RAG
           </span>
-          {state.streaming && (
-            <div style={{ marginLeft: "auto", fontSize: 10, color: "var(--green)", textShadow: "0 0 8px rgba(57,255,20,0.6)", letterSpacing: 2, display: "flex", alignItems: "center", gap: 5, animation: "pulse-glow 1.4s ease-in-out infinite" }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)", boxShadow: "0 0 6px var(--green)", display: "inline-block", animation: "pulse-dot 1.4s ease-in-out infinite" }} />
+
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
+            {queryCount > 0 && (
+              <span style={{ fontSize: 9, color: "var(--text-faint)", letterSpacing: 1, fontFamily: "var(--font-mono)" }}>
+                [{String(queryCount).padStart(2, "0")} QUERIES]
+              </span>
+            )}
+            <div style={{ fontSize: 10, color: "var(--green)", textShadow: "0 0 8px rgba(57,255,20,0.6)", letterSpacing: 2, display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: "var(--green)",
+                boxShadow: "0 0 6px var(--green)",
+                display: "inline-block",
+                animation: "pulse-dot 1.4s ease-in-out infinite",
+              }} />
               LIVE
             </div>
-          )}
+          </div>
         </header>
 
-        {/* Query bar */}
         <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0, background: "var(--surface)" }}>
           <QueryBar onSubmit={handleQuery} disabled={state.streaming} />
         </div>
 
-        {/* Report area */}
-        <main style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-          <ReportArea sections={state.sections} error={state.error} />
+        <main style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 12, paddingBottom: 40 }}>
+          <ReportArea
+            sections={state.sections}
+            error={state.error}
+            streaming={state.streaming}
+            lastToken={state.lastToken}
+          />
         </main>
+
+        <StatusBar isStreaming={state.streaming} model={model} />
       </div>
     </div>
   );
