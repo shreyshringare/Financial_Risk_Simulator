@@ -7,8 +7,8 @@ export default function MonteCarloCard({ data }: { data: MonteCarloData }) {
   const trackMin = data.percentile_5 - spread * 0.1;
   const trackMax = data.percentile_95 + spread * 0.1;
   const trackRange = trackMax - trackMin;
-  const barLeft = ((data.percentile_5 - trackMin) / trackRange) * 100;
-  const barWidth = (spread / trackRange) * 100;
+  const barLeft = trackRange > 0 ? ((data.percentile_5 - trackMin) / trackRange) * 100 : 0;
+  const barWidth = trackRange > 0 ? (spread / trackRange) * 100 : 0;
 
   return (
     <div className="card-phosphor">
