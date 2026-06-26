@@ -23,6 +23,7 @@ type Action =
   | { type: "ADD_STOCK";       data: Extract<SSEEvent, { section: "stock" }>["data"] }
   | { type: "ADD_MONTE_CARLO"; data: Extract<SSEEvent, { section: "monte_carlo" }>["data"] }
   | { type: "ADD_RISK";        data: Extract<SSEEvent, { section: "risk" }>["data"] }
+  | { type: "ADD_OPTIONS";     data: Extract<SSEEvent, { section: "options" }>["data"] }
   | { type: "ADD_CAVEATS" }
   | { type: "APPEND_TOKEN";    token: string }
   | { type: "DONE" }
@@ -55,6 +56,13 @@ function reducer(state: State, action: Action): State {
           { kind: "risk", data: action.data },
           { kind: "verdict", content: "", streaming: true },
         ],
+      };
+
+    case "ADD_OPTIONS":
+      return {
+        ...state,
+        hasAnalysisSections: true,
+        sections: [...state.sections, { kind: "options", data: action.data }],
       };
 
     case "APPEND_TOKEN": {
@@ -122,6 +130,7 @@ export default function Terminal() {
             if      (event.section === "stock")       dispatch({ type: "ADD_STOCK",       data: event.data });
             else if (event.section === "monte_carlo") dispatch({ type: "ADD_MONTE_CARLO", data: event.data });
             else if (event.section === "risk")        dispatch({ type: "ADD_RISK",        data: event.data });
+            else if (event.section === "options")     dispatch({ type: "ADD_OPTIONS",     data: event.data });
             else if (event.section === "caveats")     dispatch({ type: "ADD_CAVEATS" });
             break;
           case "token":  dispatch({ type: "APPEND_TOKEN", token: event.token }); break;

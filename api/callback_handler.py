@@ -6,9 +6,10 @@ from langchain.callbacks.base import AsyncCallbackHandler
 
 # Tool name → SSE section type
 _TOOL_SECTION_MAP = {
-    "fetch_stock_data": "stock",
+    "fetch_stock_data":           "stock",
     "run_monte_carlo_simulation": "monte_carlo",
-    "calculate_risk_metrics": "risk",
+    "calculate_risk_metrics":     "risk",
+    "analyze_option":             "options",
 }
 
 
