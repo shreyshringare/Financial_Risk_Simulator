@@ -2,6 +2,7 @@ import type { ReportSection } from "@/types/events";
 import StockCard from "./cards/StockCard";
 import MonteCarloCard from "./cards/MonteCarloCard";
 import RiskCard from "./cards/RiskCard";
+import OptionsCard from "./cards/OptionsCard";
 import VerdictCard from "./cards/VerdictCard";
 import CaveatsCard from "./cards/CaveatsCard";
 import ProseCard from "./cards/ProseCard";
@@ -65,6 +66,7 @@ function SectionRenderer({ section }: { section: ReportSection }) {
     case "stock":       return <StockCard data={section.data} />;
     case "monte_carlo": return <MonteCarloCard data={section.data} />;
     case "risk":        return <RiskCard data={section.data} />;
+    case "options":     return <OptionsCard data={section.data} />;
     case "verdict":     return <VerdictCard content={section.content} streaming={section.streaming} />;
     case "caveats":     return <CaveatsCard />;
     case "prose":       return <ProseCard content={section.content} streaming={section.streaming} />;
