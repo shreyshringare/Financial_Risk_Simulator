@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 from langchain.agents import AgentExecutor, create_react_agent
-from langchain import hub
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferWindowMemory
 
@@ -51,39 +50,32 @@ def create_agent() -> AgentExecutor:
     )
     tool_names = ", ".join(tool.name for tool in ALL_TOOLS)
 
-    # Try pulling the standard ReAct prompt from LangChain Hub
-    try:
-        base_prompt = hub.pull("hwchase17/react")
-        # Prepend the system prompt to the base ReAct template
-        # hub prompt uses 'input', 'agent_scratchpad', 'tools', 'tool_names'
-        prompt = base_prompt.partial(
-            system_prompt=SYSTEM_PROMPT,
-        )
-    except Exception:
-        # Fallback: construct a minimal ReAct prompt manually
-        react_template = (
-            "{system_prompt}\n\n"
-            "You have access to the following tools:\n\n"
-            "{tools}\n\n"
-            "Use the following format:\n\n"
-            "Question: the input question you must answer\n"
-            "Thought: you should always think about what to do\n"
-            "Action: the action to take, should be one of [{tool_names}]\n"
-            "Action Input: the input to the action\n"
-            "Observation: the result of the action\n"
-            "... (this Thought/Action/Action Input/Observation can repeat N times)\n"
-            "Thought: I now know the final answer\n"
-            "Final Answer: the final answer to the original input question\n\n"
-            "Begin!\n\n"
-            "Question: {input}\n"
-            "Thought:{agent_scratchpad}"
-        )
-        from langchain.prompts import PromptTemplate
-        prompt = PromptTemplate(
-            input_variables=["input", "agent_scratchpad", "tools", "tool_names"],
-            partial_variables={"system_prompt": SYSTEM_PROMPT},
-            template=react_template,
-        )
+    # Build the ReAct prompt manually so SYSTEM_PROMPT is always injected.
+    # hub.pull("hwchase17/react") does not contain {system_prompt}, so
+    # .partial(system_prompt=...) is silently ignored when using the hub version.
+    from langchain.prompts import PromptTemplate
+    react_template = (
+        "{system_prompt}\n\n"
+        "You have access to the following tools:\n\n"
+        "{tools}\n\n"
+        "Use the following format:\n\n"
+        "Question: the input question you must answer\n"
+        "Thought: you should always think about what to do\n"
+        "Action: the action to take, should be one of [{tool_names}]\n"
+        "Action Input: the input to the action\n"
+        "Observation: the result of the action\n"
+        "... (this Thought/Action/Action Input/Observation can repeat N times)\n"
+        "Thought: I now know the final answer\n"
+        "Final Answer: the final answer to the original input question\n\n"
+        "Begin!\n\n"
+        "Question: {input}\n"
+        "Thought:{agent_scratchpad}"
+    )
+    prompt = PromptTemplate(
+        input_variables=["input", "agent_scratchpad", "tools", "tool_names"],
+        partial_variables={"system_prompt": SYSTEM_PROMPT},
+        template=react_template,
+    )
 
     memory = ConversationBufferWindowMemory(
         k=10,

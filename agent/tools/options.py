@@ -120,36 +120,14 @@ def _calculate_implied_vol(
 
 # ── Agent tool ────────────────────────────────────────────────────────────────
 
-@tool
-def analyze_option(
+def _run_analyze_option(
     ticker: str,
     strike: float,
     expiry_days: int,
     option_type: str,
     risk_free_rate: float = 0.05,
 ) -> str:
-    """
-    Full Black-Scholes analysis for a European option: price, vol estimate, and all Greeks.
-
-    Uses 6-month historical volatility as the vol input (standard proxy when
-    live option market prices are unavailable).
-
-    Args:
-        ticker:        Stock ticker symbol (e.g. 'AAPL', 'TSLA'). Use uppercase.
-        strike:        Strike price in USD (e.g. 200.0 for a $200 strike).
-        expiry_days:   Days until expiry as an integer (e.g. 90 for ~3 months,
-                       180 for ~6 months, 365 for ~1 year). Do NOT pass years.
-        option_type:   'call' or 'put' (lowercase).
-        risk_free_rate: Annual risk-free rate as decimal. Default 0.05 (= 5%).
-                        Do NOT pass 5 — pass 0.05.
-
-    Returns JSON with: ticker, strike, expiry_days, option_type, current_price,
-    bsm_price, intrinsic_value, time_value, implied_vol, delta, gamma, vega,
-    theta, rho, delta_interp, vega_interp, theta_interp.
-
-    Example: analyze_option('AAPL', 200.0, 90, 'call') for an AAPL $200 call
-    expiring in approximately 3 months.
-    """
+    """Implementation called by the @tool wrapper and directly by tests."""
     try:
         ticker = _sanitize_ticker(ticker)
         opt_type = option_type.lower().strip()
@@ -215,3 +193,33 @@ def analyze_option(
 
     except Exception as e:
         return json.dumps({"error": str(e)})
+
+
+@tool
+def analyze_option(input_json: str) -> str:
+    """
+    Full Black-Scholes analysis for a European option: BSM price, historical vol,
+    and all Greeks (delta, gamma, vega, theta, rho) with plain-English interpretations.
+
+    Uses 6-month historical volatility as the vol proxy (no live option prices needed).
+
+    Action Input MUST be a JSON string with these keys:
+      ticker       - stock symbol, e.g. "AAPL" (uppercase)
+      strike       - strike price as a number, e.g. 200.0
+      expiry_days  - days until expiry as an integer, e.g. 90
+      option_type  - "call" or "put"
+      risk_free_rate - (optional) annual rate as decimal, default 0.05
+
+    Example Action Input: {"ticker": "AAPL", "strike": 200.0, "expiry_days": 90, "option_type": "call"}
+    """
+    try:
+        params = json.loads(input_json)
+    except (json.JSONDecodeError, TypeError):
+        return json.dumps({"error": f"Action Input must be a JSON string. Got: {input_json!r}"})
+    return _run_analyze_option(
+        ticker=str(params.get("ticker", "")),
+        strike=float(params.get("strike", 0)),
+        expiry_days=int(params.get("expiry_days", 0)),
+        option_type=str(params.get("option_type", "call")),
+        risk_free_rate=float(params.get("risk_free_rate", 0.05)),
+    )

@@ -10,4 +10,6 @@ SYSTEM_PROMPT = """You are a quantitative financial risk analyst. When analyzing
 8. Max drawdown is the largest peak-to-trough decline — a more negative number means worse historical loss.
 
 Always use available tools to fetch real data before answering quantitative questions.
+
+For options pricing, Greeks (delta, gamma, vega, theta, rho), implied volatility, Black-Scholes valuation, or any question about calls/puts/derivatives, use the `analyze_option` tool — do NOT use fetch_stock_data or calculate_risk_metrics for these queries. Action Input for analyze_option MUST be a JSON object, example: {"ticker": "AAPL", "strike": 200.0, "expiry_days": 90, "option_type": "call"}
 """

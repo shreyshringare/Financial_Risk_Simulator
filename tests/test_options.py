@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 # ── BSM math tests (pure, no network) ────────────────────────────────────────
 
-from agent.tools.options import _bsm_price, _compute_greeks, _calculate_implied_vol
+from agent.tools.options import _bsm_price, _compute_greeks, _calculate_implied_vol, _run_analyze_option
 
 
 @pytest.mark.parametrize("S,K,T,r,sigma,opt_type,expected", [
@@ -81,8 +81,7 @@ def test_analyze_option_returns_expected_keys():
     prices = pd.Series(150.0 + np.random.randn(126).cumsum(), index=dates)
     mock_hist = pd.DataFrame({"Close": prices})
     with patch("yfinance.download", return_value=mock_hist):
-        from agent.tools.options import analyze_option
-        result = analyze_option.func("AAPL", 150.0, 90, "call", 0.05)
+        result = _run_analyze_option("AAPL", 150.0, 90, "call", 0.05)
 
     data = json.loads(result)
     assert "error" not in data, f"Tool returned error: {data.get('error')}"
@@ -99,7 +98,6 @@ def test_analyze_option_returns_expected_keys():
 
 
 def test_analyze_option_invalid_ticker():
-    from agent.tools.options import analyze_option
-    result = analyze_option.func("../../etc/passwd", 150.0, 90, "call")
+    result = _run_analyze_option("../../etc/passwd", 150.0, 90, "call")
     data = json.loads(result)
     assert "error" in data
