@@ -24,6 +24,10 @@ type Action =
   | { type: "ADD_MONTE_CARLO"; data: Extract<SSEEvent, { section: "monte_carlo" }>["data"] }
   | { type: "ADD_RISK";        data: Extract<SSEEvent, { section: "risk" }>["data"] }
   | { type: "ADD_OPTIONS";     data: Extract<SSEEvent, { section: "options" }>["data"] }
+  | { type: "ADD_PORTFOLIO";   data: Extract<SSEEvent, { section: "portfolio" }>["data"] }
+  | { type: "ADD_STRESS_TEST"; data: Extract<SSEEvent, { section: "stress_test" }>["data"] }
+  | { type: "ADD_FRONTIER";    data: Extract<SSEEvent, { section: "frontier" }>["data"] }
+  | { type: "ADD_NEWS";        data: Extract<SSEEvent, { section: "news" }>["data"] }
   | { type: "ADD_CAVEATS" }
   | { type: "APPEND_TOKEN";    token: string }
   | { type: "DONE" }
@@ -94,6 +98,18 @@ function reducer(state: State, action: Action): State {
       return { ...state, sections, lastToken: action.token };
     }
 
+    case "ADD_PORTFOLIO":
+      return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "portfolio", data: action.data }] };
+
+    case "ADD_STRESS_TEST":
+      return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "stress_test", data: action.data }] };
+
+    case "ADD_FRONTIER":
+      return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "frontier", data: action.data }] };
+
+    case "ADD_NEWS":
+      return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "news", data: action.data }] };
+
     case "ADD_CAVEATS":
       return { ...state, sections: [...state.sections, { kind: "caveats" }] };
 
@@ -143,6 +159,10 @@ export default function Terminal() {
             else if (event.section === "monte_carlo") dispatch({ type: "ADD_MONTE_CARLO", data: event.data });
             else if (event.section === "risk")        dispatch({ type: "ADD_RISK",        data: event.data });
             else if (event.section === "options")     dispatch({ type: "ADD_OPTIONS",     data: event.data });
+            else if (event.section === "portfolio")   dispatch({ type: "ADD_PORTFOLIO",   data: event.data });
+            else if (event.section === "stress_test") dispatch({ type: "ADD_STRESS_TEST", data: event.data });
+            else if (event.section === "frontier")    dispatch({ type: "ADD_FRONTIER",    data: event.data });
+            else if (event.section === "news")        dispatch({ type: "ADD_NEWS",        data: event.data });
             else if (event.section === "caveats")     dispatch({ type: "ADD_CAVEATS" });
             break;
           case "token":  dispatch({ type: "APPEND_TOKEN", token: event.token }); break;

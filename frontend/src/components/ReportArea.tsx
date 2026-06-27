@@ -8,6 +8,10 @@ import CaveatsCard from "./cards/CaveatsCard";
 import ProseCard from "./cards/ProseCard";
 import BootScreen from "./BootScreen";
 import StreamingIndicator from "./StreamingIndicator";
+import PortfolioCard  from "./cards/PortfolioCard";
+import StressTestCard from "./cards/StressTestCard";
+import FrontierCard   from "./cards/FrontierCard";
+import NewsCard       from "./cards/NewsCard";
 
 interface Props {
   sections: ReportSection[];
@@ -70,5 +74,9 @@ function SectionRenderer({ section }: { section: ReportSection }) {
     case "verdict":     return <VerdictCard content={section.content} streaming={section.streaming} />;
     case "caveats":     return <CaveatsCard />;
     case "prose":       return <ProseCard content={section.content} streaming={section.streaming} />;
+    case "portfolio":   return <PortfolioCard  data={section.data} />;
+    case "stress_test": return <StressTestCard data={section.data} />;
+    case "frontier":    return <FrontierCard   data={section.data} />;
+    case "news":        return <NewsCard       data={section.data} />;
   }
 }

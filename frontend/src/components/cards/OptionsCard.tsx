@@ -24,7 +24,7 @@ function SensitivityTable({ data }: { data: OptionsData }) {
   const S = data.current_price;
   const T0 = data.expiry_days;
   const r = 0.05;
-  const sigma = (data.implied_vol ?? 25) / 100;
+  const sigma = (data.hist_vol ?? 25) / 100;
 
   // Strike offsets: -20% to +20% in 5% steps (5 cols)
   const strikeOffsets = [-0.20, -0.10, 0, +0.10, +0.20];
@@ -91,7 +91,7 @@ function SensitivityTable({ data }: { data: OptionsData }) {
         </table>
       </div>
       <div style={{ fontSize: 8, color: "var(--text-faint)", marginTop: 4, fontFamily: "var(--font-mono)" }}>
-        ● = current params · r=5% · σ={((data.implied_vol ?? 25)).toFixed(1)}%
+        ● = current params · r=5% · σ={((data.hist_vol ?? 25)).toFixed(1)}%
       </div>
     </div>
   );
@@ -103,7 +103,7 @@ function PriceChart({ data }: { data: OptionsData }) {
   const K  = data.strike;
   const T  = data.expiry_days / 365;
   const r  = 0.05;
-  const sigma = (data.implied_vol ?? 25) / 100;
+  const sigma = (data.hist_vol ?? 25) / 100;
 
   const N = 60;
   const sMin = S0 * 0.60;
@@ -167,7 +167,7 @@ function PriceChart({ data }: { data: OptionsData }) {
 
 export default function OptionsCard({ data }: { data: OptionsData }) {
   const typeLabel = data.option_type.toUpperCase();
-  const ivDisplay = data.implied_vol != null ? `${data.implied_vol.toFixed(1)}%` : "N/A";
+  const ivDisplay = data.hist_vol != null ? `${data.hist_vol.toFixed(1)}%` : "N/A";
   const intrinsicDisplay = `$${data.intrinsic_value.toFixed(2)}`;
   const bsmDisplay = `$${data.bsm_price.toFixed(2)}`;
   const priceDisplay = `$${data.current_price.toFixed(2)}`;
@@ -206,7 +206,7 @@ export default function OptionsCard({ data }: { data: OptionsData }) {
       {/* Call / Put comparison */}
       {(() => {
         const S = data.current_price, K = data.strike, T = data.expiry_days / 365, r = 0.05;
-        const sigma = (data.implied_vol ?? 25) / 100;
+        const sigma = (data.hist_vol ?? 25) / 100;
         const callPrice = bsmPrice(S, K, T, r, sigma, "call");
         const putPrice  = bsmPrice(S, K, T, r, sigma, "put");
         const parity    = Math.abs((callPrice - putPrice) - (S - K * Math.exp(-r * T)));
