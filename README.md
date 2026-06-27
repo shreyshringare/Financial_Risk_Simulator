@@ -2,8 +2,6 @@
 
 > Agentic financial risk platform with a phosphor terminal analyst UI. Natural language queries drive a LangChain ReAct agent (Groq llama-3.3-70b) that orchestrates Monte Carlo GBM simulation, VaR/CVaR/Sharpe/drawdown, Markowitz efficient frontier, historical stress testing, RSS news sentiment, and Excel/PowerBI export — streamed token-by-token to a Next.js analyst report UI.
 
-**Built as a resume differentiator for JPMC CIB Research & Analytics internship.**
-
 ---
 
 ## Architecture
