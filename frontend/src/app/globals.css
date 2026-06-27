@@ -68,7 +68,9 @@
 }
 @keyframes progress-fill {
   0%   { width: 0%; }
-  100% { width: 75%; }
+  60%  { width: 70%; }
+  90%  { width: 88%; }
+  100% { width: 92%; }
 }
 
 /* ── Base ── */

@@ -1,8 +1,6 @@
 import os
 from dotenv import load_dotenv
 from langchain.agents import AgentExecutor, create_react_agent
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.memory import ConversationBufferWindowMemory
 
 from agent.tools import ALL_TOOLS
 from agent.prompts import SYSTEM_PROMPT
@@ -77,12 +75,6 @@ def create_agent() -> AgentExecutor:
         template=react_template,
     )
 
-    memory = ConversationBufferWindowMemory(
-        k=10,
-        memory_key="chat_history",
-        return_messages=True,
-    )
-
     agent = create_react_agent(
         llm=llm,
         tools=ALL_TOOLS,
@@ -92,7 +84,6 @@ def create_agent() -> AgentExecutor:
     agent_executor = AgentExecutor(
         agent=agent,
         tools=ALL_TOOLS,
-        memory=memory,
         verbose=True,
         handle_parsing_errors=True,
         max_iterations=10,

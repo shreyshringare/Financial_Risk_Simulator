@@ -53,10 +53,25 @@ async def chat(req: ChatRequest):
     agent_executor = app.state.agent_executor
 
     async def generate() -> AsyncIterator[str]:
+        # Build conversation context from history
+        context_lines = []
+        for turn in req.history[-6:]:  # last 3 exchanges max
+            role = turn.get("role", "")
+            content = turn.get("content", "")
+            if role == "user":
+                context_lines.append(f"Previous question: {content}")
+            elif role == "assistant":
+                context_lines.append(f"Previous answer: {content[:200]}...")  # truncate long answers
+
+        message = req.message
+        if context_lines:
+            context_str = "\n".join(context_lines)
+            message = f"[Conversation context]\n{context_str}\n\n[Current question]\n{req.message}"
+
         async def run() -> None:
             try:
                 await agent_executor.ainvoke(
-                    {"input": req.message},
+                    {"input": message},
                     config={"callbacks": [callback]},
                 )
             except Exception as exc:
