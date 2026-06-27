@@ -120,6 +120,10 @@ export default function Terminal() {
   const [state, dispatch] = useReducer(reducer, initial);
   const [queryCount, setQueryCount] = useState(0);
   const [model, setModel] = useState("groq/llama-3.3-70b");
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.innerWidth > 768;
+  });
 
   useEffect(() => {
     fetch("http://localhost:8000/api/health")
@@ -153,7 +157,7 @@ export default function Terminal() {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <Sidebar onQuery={handleQuery} disabled={state.streaming} />
+      <Sidebar onQuery={handleQuery} disabled={state.streaming} open={sidebarOpen} />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
@@ -164,6 +168,19 @@ export default function Terminal() {
           flexShrink: 0,
           background: "var(--surface)",
         }}>
+          <button
+            onClick={() => setSidebarOpen(o => !o)}
+            style={{
+              background: "none", border: "1px solid var(--border)",
+              color: "var(--amber-dim)", cursor: "pointer",
+              padding: "3px 7px", fontSize: 14,
+              fontFamily: "var(--font-mono)", letterSpacing: 1,
+              flexShrink: 0,
+            }}
+            title="Toggle sidebar"
+          >
+            ☰
+          </button>
           <span className="font-display" style={{ fontSize: 22, color: "var(--amber-bright)", textShadow: "0 0 12px var(--amber-dim)", letterSpacing: 1 }}>
             ◆ FINSIM ANALYST TERMINAL
           </span>
