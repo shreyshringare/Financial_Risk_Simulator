@@ -184,7 +184,7 @@ def _run_analyze_option(
             "bsm_price":     round(bsm, 4),
             "intrinsic_value": round(intrinsic, 4),
             "time_value":    round(time_value, 4),
-            "implied_vol":   iv_display,
+            "hist_vol":      iv_display,
             **{k: round(v, 6) for k, v in greeks.items()},
             "delta_interp":  delta_interp,
             "vega_interp":   vega_interp,

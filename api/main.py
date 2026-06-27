@@ -1,21 +1,32 @@
 import os
 import asyncio
+import time
+from collections import defaultdict
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# Rate limit: 20 requests per minute per IP on /api/chat
+_RATE_LIMIT = int(os.getenv("RATE_LIMIT", "20"))
+_RATE_WINDOW = 60  # seconds
+_buckets: dict = defaultdict(lambda: {"count": 0, "reset_at": 0.0})
+
+# Optional API key (set API_KEY= in .env to enable, leave unset to disable)
+_API_KEY = os.getenv("API_KEY")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    from agent.agent import create_agent
-    app.state.agent_executor = create_agent()
+    from agent.agent import build_llm
+    app.state.llm = build_llm()
     yield
 
 
@@ -46,28 +57,49 @@ class ChatRequest(BaseModel):
 
 
 @app.post("/api/chat")
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, request: Request):
     """Stream typed SSE events for a chat message."""
+    # — API key check (if API_KEY is set in env) —
+    if _API_KEY:
+        key = request.headers.get("X-API-Key", "")
+        if key != _API_KEY:
+            raise HTTPException(status_code=401, detail="Missing or invalid X-API-Key header.")
+
+    # — Rate limiting per IP —
+    ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    bucket = _buckets[ip]
+    if now > bucket["reset_at"]:
+        bucket["count"] = 0
+        bucket["reset_at"] = now + _RATE_WINDOW
+    bucket["count"] += 1
+    if bucket["count"] > _RATE_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit: {_RATE_LIMIT} requests/{_RATE_WINDOW}s. Try again shortly."
+        )
+
     from api.callback_handler import AnalystCallbackHandler
+    from agent.agent import make_executor
+
     callback = AnalystCallbackHandler()
-    agent_executor = app.state.agent_executor
+    # Fresh executor per request — no shared state between concurrent users
+    agent_executor = make_executor(app.state.llm)
+
+    # Build enriched message from history
+    context_lines = []
+    for turn in req.history[-6:]:
+        role = turn.get("role", "")
+        content = str(turn.get("content", ""))
+        if role == "user":
+            context_lines.append(f"Previous question: {content}")
+        elif role == "assistant":
+            context_lines.append(f"Previous answer: {content[:200]}...")
+    message = req.message
+    if context_lines:
+        message = "[Conversation context]\n" + "\n".join(context_lines) + "\n\n[Current question]\n" + req.message
 
     async def generate() -> AsyncIterator[str]:
-        # Build conversation context from history
-        context_lines = []
-        for turn in req.history[-6:]:  # last 3 exchanges max
-            role = turn.get("role", "")
-            content = turn.get("content", "")
-            if role == "user":
-                context_lines.append(f"Previous question: {content}")
-            elif role == "assistant":
-                context_lines.append(f"Previous answer: {content[:200]}...")  # truncate long answers
-
-        message = req.message
-        if context_lines:
-            context_str = "\n".join(context_lines)
-            message = f"[Conversation context]\n{context_str}\n\n[Current question]\n{req.message}"
-
         async def run() -> None:
             try:
                 await agent_executor.ainvoke(

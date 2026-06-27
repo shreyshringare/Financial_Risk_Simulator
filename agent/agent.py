@@ -17,7 +17,8 @@ load_dotenv()
 # To use OpenAI instead: set OPENAI_API_KEY and remove/unset GROQ_API_KEY.
 # ---------------------------------------------------------------------------
 
-def _build_llm():
+def build_llm():
+    """Create LLM once. Expensive. Call once on startup."""
     groq_key = os.getenv("GROQ_API_KEY")
     if groq_key:
         from langchain_groq import ChatGroq
@@ -29,28 +30,15 @@ def _build_llm():
             streaming=True,
             request_timeout=60,
         )
-    # Fallback to OpenAI
     from langchain_openai import ChatOpenAI
     return ChatOpenAI(model="gpt-4o-mini", temperature=0, max_tokens=2000, streaming=True)
 
 
-def create_agent() -> AgentExecutor:
-    """
-    Create and return a LangChain ReAct AgentExecutor.
-    Safe to call with @st.cache_resource in Streamlit.
-    Uses Groq (free) if GROQ_API_KEY set, else OpenAI.
-    """
-    llm = _build_llm()
+def make_executor(llm) -> AgentExecutor:
+    """Create fresh AgentExecutor per request. Cheap — no model loading."""
+    tool_descriptions = "\n".join(f"{t.name}: {t.description}" for t in ALL_TOOLS)
+    tool_names = ", ".join(t.name for t in ALL_TOOLS)
 
-    # Build tool descriptions for the prompt
-    tool_descriptions = "\n".join(
-        f"{tool.name}: {tool.description}" for tool in ALL_TOOLS
-    )
-    tool_names = ", ".join(tool.name for tool in ALL_TOOLS)
-
-    # Build the ReAct prompt manually so SYSTEM_PROMPT is always injected.
-    # hub.pull("hwchase17/react") does not contain {system_prompt}, so
-    # .partial(system_prompt=...) is silently ignored when using the hub version.
     from langchain.prompts import PromptTemplate
     react_template = (
         "{system_prompt}\n\n"
@@ -74,14 +62,8 @@ def create_agent() -> AgentExecutor:
         partial_variables={"system_prompt": SYSTEM_PROMPT},
         template=react_template,
     )
-
-    agent = create_react_agent(
-        llm=llm,
-        tools=ALL_TOOLS,
-        prompt=prompt,
-    )
-
-    agent_executor = AgentExecutor(
+    agent = create_react_agent(llm=llm, tools=ALL_TOOLS, prompt=prompt)
+    return AgentExecutor(
         agent=agent,
         tools=ALL_TOOLS,
         verbose=True,
@@ -90,7 +72,10 @@ def create_agent() -> AgentExecutor:
         max_execution_time=120,
     )
 
-    return agent_executor
+
+# Keep create_agent() for backward compatibility with tests
+def create_agent() -> AgentExecutor:
+    return make_executor(build_llm())
 
 
 def run_agent(agent_executor: AgentExecutor, user_input: str) -> str:

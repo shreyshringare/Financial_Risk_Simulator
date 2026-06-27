@@ -89,7 +89,7 @@ def test_analyze_option_returns_expected_keys():
     required = [
         "ticker", "strike", "expiry_days", "option_type",
         "current_price", "bsm_price", "intrinsic_value", "time_value",
-        "implied_vol",
+        "hist_vol",
         "delta", "gamma", "vega", "theta", "rho",
         "delta_interp", "vega_interp", "theta_interp",
     ]

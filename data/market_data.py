@@ -4,10 +4,30 @@ Fallback chain: yfinance → pandas_datareader (Stooq) → BeautifulSoup Yahoo s
 Each source is tried in order; first success is returned.
 """
 import time
+import threading
 import numpy as np
 import pandas as pd
 import yfinance as yf
 from typing import Optional
+
+_cache_lock = threading.Lock()
+_price_cache: dict = {}
+_CACHE_TTL = 300  # 5 minutes
+
+
+def _get_cached(ticker: str, start: str):
+    key = (ticker, start)
+    with _cache_lock:
+        entry = _price_cache.get(key)
+        if entry and (time.time() - entry["ts"]) < _CACHE_TTL:
+            return entry["data"]
+    return None
+
+
+def _set_cached(ticker: str, start: str, data) -> None:
+    key = (ticker, start)
+    with _cache_lock:
+        _price_cache[key] = {"data": data, "ts": time.time()}
 
 
 def fetch_prices(ticker: str, start: str = "2020-01-01") -> pd.Series:
@@ -25,11 +45,17 @@ def fetch_prices(ticker: str, start: str = "2020-01-01") -> pd.Series:
     Raises:
         RuntimeError if all sources fail.
     """
+    cached = _get_cached(ticker, start)
+    if cached is not None:
+        return cached
+
     # Source 1: yfinance
     try:
         data = yf.download(ticker, start=start, progress=False)
         if not data.empty:
-            return data["Close"].dropna()
+            result = data["Close"].dropna()
+            _set_cached(ticker, start, result)
+            return result
     except Exception:
         pass
 
@@ -40,7 +66,9 @@ def fetch_prices(ticker: str, start: str = "2020-01-01") -> pd.Series:
         stooq_ticker = ticker.replace(".NS", ".NS").replace(".L", ".UK").replace(".TO", ".CA")
         df = web.DataReader(stooq_ticker, "stooq", start=start)
         if not df.empty:
-            return df["Close"].sort_index().dropna()
+            result = df["Close"].sort_index().dropna()
+            _set_cached(ticker, start, result)
+            return result
     except Exception:
         pass
 
@@ -57,7 +85,9 @@ def fetch_prices(ticker: str, start: str = "2020-01-01") -> pd.Series:
         if price_tag:
             price = float(price_tag.get("value", 0))
             # Return single-point Series (limited but better than nothing)
-            return pd.Series([price], index=[pd.Timestamp.now().normalize()])
+            result = pd.Series([price], index=[pd.Timestamp.now().normalize()])
+            _set_cached(ticker, start, result)
+            return result
     except Exception:
         pass
 

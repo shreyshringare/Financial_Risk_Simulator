@@ -28,7 +28,7 @@ def test_sanitize_ticker_invalid():
 
 
 def test_yfinance_error_dict():
-    with patch("yfinance.download", side_effect=Exception("Network error")):
+    with patch("agent.tools.base.fetch_prices", side_effect=Exception("Network error")):
         result = fetch_stock_data.func("ZZZZZ")
     parsed = json.loads(result)
     assert "error" in parsed
@@ -36,9 +36,8 @@ def test_yfinance_error_dict():
 
 def test_risk_dict_keys():
     prices = pd.Series([100.0 + i for i in range(252)], name="Close")
-    mock_df = pd.DataFrame({"Close": prices})
 
-    with patch("yfinance.download", return_value=mock_df), \
+    with patch("agent.tools.base.fetch_prices", return_value=prices), \
          patch("simulation.monte_carlo.run_monte_carlo", return_value=np.ones((100, 252)) * 100.0):
         result = calculate_risk_metrics.func("AAPL")
 

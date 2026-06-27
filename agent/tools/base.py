@@ -44,8 +44,7 @@ def fetch_stock_data(ticker: str, start: str = "2020-01-01") -> str:
     """Fetch historical stock price data for a ticker symbol. Use ticker suffixes for global markets: .NS (NSE India), .L (LSE), .TO (TSX). Returns price statistics as JSON string."""
     try:
         ticker = _sanitize_ticker(ticker)
-        data = yf.download(ticker, start=start, progress=False)
-        prices = data['Close'].squeeze()
+        prices = fetch_prices(ticker, start=start)
         return json.dumps({
             "ticker": ticker,
             "start": str(prices.index.min().date()),
@@ -64,8 +63,7 @@ def run_monte_carlo_simulation(ticker: str, days: int = 252, simulations: int = 
     """Run Monte Carlo simulation for a stock. Returns simulation summary statistics as JSON string."""
     try:
         ticker = _sanitize_ticker(ticker)
-        data = yf.download(ticker, start="2020-01-01", progress=False)
-        prices = data['Close'].squeeze()
+        prices = fetch_prices(ticker, start="2020-01-01")
         paths = run_monte_carlo(prices, days, simulations)
         final_prices = paths[:, -1]
         return json.dumps({
@@ -86,8 +84,7 @@ def calculate_risk_metrics(ticker: str) -> str:
     """Calculate VaR, CVaR, Sharpe ratio, and max drawdown for a stock. Returns metrics as JSON string."""
     try:
         ticker = _sanitize_ticker(ticker)
-        data = yf.download(ticker, start="2020-01-01", progress=False)
-        prices = data['Close'].squeeze().dropna()
+        prices = fetch_prices(ticker, start="2020-01-01").dropna()
         paths = run_monte_carlo(prices, days=252, simulations=1000)
         return json.dumps({
             "var": round(float(calculate_historical_var(prices)), 4),
@@ -181,8 +178,7 @@ def run_stress_test_tool(ticker: str, scenario: str = "2008_financial_crisis") -
     """Run historical stress test on a stock. Scenarios: 2008_financial_crisis, covid_2020, dotcom_2000, russia_ukraine_2022, black_monday_1987. Returns stressed VaR vs baseline VaR as JSON."""
     try:
         ticker = _sanitize_ticker(ticker)
-        data = yf.download(ticker, start="2020-01-01", progress=False)
-        prices = data['Close'].squeeze()
+        prices = fetch_prices(ticker, start="2020-01-01")
         paths = run_monte_carlo(prices, simulations=1000, days=252)
         if scenario not in SCENARIOS:
             available = get_available_scenarios()
@@ -198,8 +194,7 @@ def export_analysis_report(ticker: str, format: str = "excel") -> str:
     """Export risk analysis to Excel or PowerBI format. format: 'excel' or 'powerbi'. Returns file path(s) as JSON."""
     try:
         ticker = _sanitize_ticker(ticker)
-        data = yf.download(ticker, start="2020-01-01", progress=False)
-        prices = data['Close'].squeeze().dropna()
+        prices = fetch_prices(ticker, start="2020-01-01").dropna()
         paths = run_monte_carlo(prices, days=252, simulations=1000)  # seed=42 default
         metrics = {
             "var": round(float(calculate_historical_var(prices)), 4),
@@ -224,19 +219,16 @@ def export_analysis_report(ticker: str, format: str = "excel") -> str:
 
 @tool
 def get_financial_news(ticker: str) -> str:
-    """Fetch latest financial news headlines for a stock ticker. Returns top 5 articles with titles, dates, summaries, and sentiment analysis (bullish/bearish/neutral)."""
+    """Fetch latest financial news headlines for a stock ticker. Returns top 5 articles with titles, dates, summaries, and sentiment analysis as JSON."""
     try:
         ticker = _sanitize_ticker(ticker)
         articles = fetch_ticker_news(ticker, max_articles=5)
         sentiment = get_news_sentiment_keywords(articles)
-        news_text = format_news_for_agent(articles)
-        sentiment_summary = (
-            f"\n\nSentiment Summary:\n"
-            f"  Bullish signals: {', '.join(sentiment.get('bullish', [])) or 'none'}\n"
-            f"  Bearish signals: {', '.join(sentiment.get('bearish', [])) or 'none'}\n"
-            f"  Neutral signals: {', '.join(sentiment.get('neutral', [])) or 'none'}"
-        )
-        return news_text + sentiment_summary
+        return json.dumps({
+            "ticker": ticker,
+            "articles": articles,
+            "sentiment": sentiment,
+        })
     except Exception as e:
         return json.dumps({"error": str(e)})
 
