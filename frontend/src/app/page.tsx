@@ -62,7 +62,11 @@ function reducer(state: State, action: Action): State {
       return {
         ...state,
         hasAnalysisSections: true,
-        sections: [...state.sections, { kind: "options", data: action.data }],
+        // Strip any prose that streamed before the card arrived (ReAct chain-of-thought)
+        sections: [
+          ...state.sections.filter((s) => s.kind !== "prose"),
+          { kind: "options", data: action.data },
+        ],
       };
 
     case "APPEND_TOKEN": {
@@ -82,6 +86,10 @@ function reducer(state: State, action: Action): State {
         return { ...state, sections, lastToken: action.token };
       }
       const card = sections[idx] as Extract<ReportSection, { kind: "verdict" | "prose" }>;
+      // Don't append to prose sections once a structured card is present
+      if (card.kind === "prose" && state.hasAnalysisSections) {
+        return { ...state, lastToken: action.token };
+      }
       sections[idx] = { ...card, content: card.content + action.token };
       return { ...state, sections, lastToken: action.token };
     }
