@@ -7,6 +7,8 @@ interface Props {
 
 const QUICK_QUERIES = [
   "What is the VaR for AAPL?",
+  "Price AAPL $200 call expiring in 90 days",
+  "Price TSLA $300 put expiring in 60 days",
   "Run Monte Carlo on RELIANCE.NS",
   "Analyze portfolio: AAPL, MSFT, TSLA",
   "2008 crisis stress test on TSLA",
@@ -28,6 +30,7 @@ const CAPABILITIES = [
   "📊 Portfolio Correlation + VaR",
   "⚡ Stress Testing (5 crises)",
   "📐 Markowitz Efficient Frontier",
+  "🧮 Options BSM · Greeks · IV",
   "📰 RSS News + Sentiment",
   "💾 Excel & PowerBI Export",
 ];
