@@ -16,6 +16,26 @@ _TOOL_SECTION_MAP = {
     "get_financial_news":            "news",
 }
 
+# Tool name → human-readable status label for the agent reasoning timeline
+_TOOL_LABELS = {
+    "fetch_stock_data": "Fetching market data",
+    "run_monte_carlo_simulation": "Running 10,000-path Monte Carlo simulation",
+    "calculate_risk_metrics": "Computing VaR, CVaR, Sharpe, drawdown",
+    "explain_risk": "Interpreting risk profile",
+    "rag_financial_query": "Consulting knowledge base",
+    "analyze_portfolio": "Analyzing portfolio correlation",
+    "run_stress_test_tool": "Stress testing against historical crisis",
+    "export_analysis_report": "Exporting report",
+    "get_financial_news": "Scanning news and sentiment",
+    "compute_efficient_frontier_tool": "Optimizing efficient frontier",
+    "get_market_movers": "Fetching market movers",
+    "analyze_option": "Pricing option (Black-Scholes)",
+}
+
+
+def _tool_label(name: str) -> str:
+    return _TOOL_LABELS.get(name, name.replace("_", " ").capitalize())
+
 
 class AnalystCallbackHandler(AsyncCallbackHandler):
     """Intercepts LangChain events and pushes typed SSE events to self.queue."""
@@ -30,6 +50,12 @@ class AnalystCallbackHandler(AsyncCallbackHandler):
     async def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
         if token:
             await self._put({"type": "token", "token": token})
+
+    async def on_tool_start(self, serialized: dict, input_str: str, **kwargs: Any) -> None:
+        name = serialized.get("name", "")
+        if not name:
+            return
+        await self._put({"type": "status", "tool": name, "label": _tool_label(name)})
 
     async def on_tool_end(self, output: str, name: str = "", **kwargs: Any) -> None:
         section = _TOOL_SECTION_MAP.get(name)

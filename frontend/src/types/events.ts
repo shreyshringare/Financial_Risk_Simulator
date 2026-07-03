@@ -116,6 +116,7 @@ export type SSEEvent =
   | { type: "section"; section: "frontier";    data: FrontierData }
   | { type: "section"; section: "news";        data: NewsData }
   | { type: "token";   token: string }
+  | { type: "status";  tool: string; label: string }
   | { type: "error";   message: string }
   | { type: "done" };
 

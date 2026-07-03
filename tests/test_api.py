@@ -36,3 +36,24 @@ def test_cors_origins_from_env(monkeypatch):
 def test_cors_origins_default_localhost():
     import api.main
     assert api.main._allowed_origins() == ["http://localhost:3000"]
+
+
+def test_callback_emits_status_on_tool_start():
+    import asyncio
+    import json
+    from api.callback_handler import AnalystCallbackHandler, _tool_label
+
+    async def run():
+        cb = AnalystCallbackHandler()
+        await cb.on_tool_start({"name": "fetch_stock_data"}, "AAPL")
+        return cb.queue.get_nowait()
+
+    item = asyncio.run(run())
+    payload = json.loads(item)
+
+    assert payload == {
+        "type": "status",
+        "tool": "fetch_stock_data",
+        "label": _tool_label("fetch_stock_data"),
+    }
+    assert payload["label"] == "Fetching market data"
