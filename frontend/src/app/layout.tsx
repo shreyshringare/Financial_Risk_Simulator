@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "FinSim — Quantitative Risk Terminal",
@@ -17,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="h-full bg-terminal-black text-text-amber">
+      <body className={`h-full bg-terminal-black text-text-amber ${inter.variable}`}>
         {children}
       </body>
     </html>

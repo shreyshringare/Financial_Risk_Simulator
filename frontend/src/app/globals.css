@@ -84,8 +84,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Scanline overlay ── */
-body::before {
+/* ── Scanline overlay (terminal only) ── */
+.terminal-shell::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -100,8 +100,8 @@ body::before {
   z-index: 9999;
 }
 
-/* ── CRT edge vignette ── */
-body::after {
+/* ── CRT edge vignette (terminal only) ── */
+.terminal-shell::after {
   content: '';
   position: fixed;
   inset: 0;
@@ -236,4 +236,29 @@ body::after {
 @media (max-width: 768px) {
   /* Prevent body scroll when sidebar overlay is open */
   body.sidebar-open { overflow: hidden; }
+}
+
+/* ── Landing design tokens ─────────────────────────────── */
+:root {
+  --l-bg: #0a0a0b;
+  --l-surface: rgba(255, 255, 255, 0.03);
+  --l-surface-2: rgba(255, 255, 255, 0.06);
+  --l-border: rgba(255, 255, 255, 0.08);
+  --l-text: #ededf0;
+  --l-text-dim: #8a8f98;
+  --l-accent: #ffb43c;
+  --l-accent-soft: rgba(255, 180, 60, 0.14);
+}
+
+.landing {
+  background: var(--l-bg);
+  color: var(--l-text);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.landing ::selection { background: var(--l-accent-soft); }
+.landing .mono { font-family: var(--font-mono), monospace; }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing * { animation: none !important; transition: none !important; }
 }
