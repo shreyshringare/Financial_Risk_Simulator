@@ -238,16 +238,16 @@ body {
   body.sidebar-open { overflow: hidden; }
 }
 
-/* ── Landing design tokens ─────────────────────────────── */
+/* ── Landing design tokens (light minimal, Anthropic-inspired) ── */
 :root {
-  --l-bg: #0a0a0b;
-  --l-surface: rgba(255, 255, 255, 0.03);
-  --l-surface-2: rgba(255, 255, 255, 0.06);
-  --l-border: rgba(255, 255, 255, 0.08);
-  --l-text: #ededf0;
-  --l-text-dim: #8a8f98;
-  --l-accent: #ffb43c;
-  --l-accent-soft: rgba(255, 180, 60, 0.14);
+  --l-bg: #faf9f5;
+  --l-surface: #ffffff;
+  --l-surface-2: #f0efe9;
+  --l-border: rgba(20, 20, 19, 0.10);
+  --l-text: #141413;
+  --l-text-dim: #6e6e69;
+  --l-accent: #b45309;
+  --l-accent-soft: rgba(180, 83, 9, 0.10);
 }
 
 .landing {
@@ -258,6 +258,7 @@ body {
 }
 .landing ::selection { background: var(--l-accent-soft); }
 .landing .mono { font-family: var(--font-mono), monospace; }
+.landing .serif { font-family: var(--font-serif), Georgia, serif; }
 
 @media (prefers-reduced-motion: reduce) {
   .landing * { animation: none !important; transition: none !important; }
