@@ -17,8 +17,8 @@ export default function CTABanner() {
           href="/app"
           style={{
             display: "inline-block",
-            background: "#141413",
-            color: "#faf9f5",
+            background: "#003a70",
+            color: "#ffffff",
             borderRadius: 999,
             padding: "14px 30px",
             fontSize: 16,

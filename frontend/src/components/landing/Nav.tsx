@@ -22,7 +22,7 @@ export default function Nav() {
         left: 0,
         right: 0,
         zIndex: 50,
-        background: scrolled ? "rgba(250,249,245,0.85)" : "transparent",
+        background: scrolled ? "rgba(255,255,255,0.85)" : "transparent",
         backdropFilter: scrolled ? "blur(12px)" : "none",
         borderBottom: scrolled ? "1px solid var(--l-border)" : "1px solid transparent",
         transition: "background 200ms ease-out, border-color 200ms ease-out",
@@ -66,8 +66,8 @@ export default function Nav() {
           <Link
             href="/app"
             style={{
-              background: "#141413",
-              color: "#faf9f5",
+              background: "#003a70",
+              color: "#ffffff",
               borderRadius: 999,
               padding: "9px 18px",
               fontSize: 14,

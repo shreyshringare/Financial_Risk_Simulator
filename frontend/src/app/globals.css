@@ -240,14 +240,14 @@ body {
 
 /* ── Landing design tokens (light minimal, Anthropic-inspired) ── */
 :root {
-  --l-bg: #faf9f5;
+  --l-bg: #ffffff;
   --l-surface: #ffffff;
-  --l-surface-2: #f0efe9;
-  --l-border: rgba(20, 20, 19, 0.10);
-  --l-text: #141413;
-  --l-text-dim: #6e6e69;
-  --l-accent: #cc785c;
-  --l-accent-soft: rgba(204, 120, 92, 0.12);
+  --l-surface-2: #f2f5f7;
+  --l-border: rgba(16, 24, 32, 0.12);
+  --l-text: #101820;
+  --l-text-dim: #5c6670;
+  --l-accent: #003a70;
+  --l-accent-soft: rgba(0, 58, 112, 0.08);
 }
 
 .landing {
@@ -268,7 +268,7 @@ body {
   transition: border-color 200ms ease-out, transform 200ms ease-out;
 }
 .landing .feature-card:hover {
-  border-color: rgba(204, 120, 92, 0.45);
+  border-color: rgba(0, 58, 112, 0.45);
   transform: translateY(-2px);
 }
 @media (max-width: 640px) {

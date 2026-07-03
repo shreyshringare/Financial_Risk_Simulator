@@ -59,7 +59,7 @@ function Particles() {
       </bufferGeometry>
       <pointsMaterial
         size={0.03}
-        color="#cc785c"
+        color="#003a70"
         transparent
         opacity={0.35}
         depthWrite={false}
@@ -78,7 +78,7 @@ export default function HeroScene() {
       style={{ position: "absolute", inset: 0 }}
     >
       <Particles />
-      <fog attach="fog" args={["#faf9f5", 6, 12]} />
+      <fog attach="fog" args={["#ffffff", 6, 12]} />
     </Canvas>
   );
 }

@@ -79,8 +79,8 @@ export default function Hero() {
           <Link
             href="/app"
             style={{
-              background: "#141413",
-              color: "#faf9f5",
+              background: "#003a70",
+              color: "#ffffff",
               borderRadius: 999,
               padding: "14px 28px",
               fontSize: 16,

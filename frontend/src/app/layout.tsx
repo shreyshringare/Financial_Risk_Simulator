@@ -6,8 +6,9 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const sourceSerif = Source_Serif_4({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
-  title: "FinSim — Quantitative Risk Terminal",
-  description: "AI-powered financial risk analysis · Monte Carlo · VaR · CVaR",
+  title: "FinSim — Agentic Financial Risk Analysis",
+  description:
+    "AI agent that runs Monte Carlo simulations, VaR/CVaR, options pricing, and stress tests from plain-English questions — and composes an analyst research note live.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
