@@ -47,7 +47,7 @@ def get_vectorstore():
 
 @tool
 def fetch_stock_data(ticker: str, start: str = "") -> str:
-    """Fetch historical stock price data for a ticker symbol. Use ticker suffixes for global markets: .NS (NSE India), .L (LSE), .TO (TSX). Returns price statistics as JSON string."""
+    """Fetch historical stock price data for a ticker symbol. Optional start date as YYYY-MM-DD; defaults to 5 years ago when empty. Use ticker suffixes for global markets: .NS (NSE India), .L (LSE), .TO (TSX). Returns price statistics as JSON string."""
     try:
         start = start or _default_start()
         ticker = _sanitize_ticker(ticker)

@@ -54,8 +54,10 @@ from agent.tools.base import _default_start
 
 
 def test_default_start_is_rolling_five_years():
-    expected = date.today() - timedelta(days=5 * 365)
-    assert _default_start() == expected.isoformat()
+    before = date.today() - timedelta(days=5 * 365)
+    result = _default_start()
+    after = date.today() - timedelta(days=5 * 365)
+    assert result in (before.isoformat(), after.isoformat())
 
 
 def test_default_start_not_hardcoded_2020():
