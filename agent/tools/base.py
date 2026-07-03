@@ -1,6 +1,7 @@
 import os
 import re
 import json
+from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -17,6 +18,11 @@ def _sanitize_ticker(ticker: str) -> str:
     if not _TICKER_RE.match(t):
         raise ValueError(f"Invalid ticker symbol: '{ticker}'")
     return t
+
+
+def _default_start() -> str:
+    """Rolling 5-year window so the data range doesn't shrink as time passes."""
+    return (date.today() - timedelta(days=5 * 365)).isoformat()
 
 from simulation.monte_carlo import run_monte_carlo
 from simulation.risk_metrics import calculate_var, calculate_cvar, calculate_sharpe, calculate_max_drawdown, calculate_historical_var, calculate_historical_cvar
@@ -40,9 +46,10 @@ def get_vectorstore():
 
 
 @tool
-def fetch_stock_data(ticker: str, start: str = "2020-01-01") -> str:
+def fetch_stock_data(ticker: str, start: str = "") -> str:
     """Fetch historical stock price data for a ticker symbol. Use ticker suffixes for global markets: .NS (NSE India), .L (LSE), .TO (TSX). Returns price statistics as JSON string."""
     try:
+        start = start or _default_start()
         ticker = _sanitize_ticker(ticker)
         prices = fetch_prices(ticker, start=start)
         return json.dumps({
@@ -63,7 +70,7 @@ def run_monte_carlo_simulation(ticker: str, days: int = 252, simulations: int = 
     """Run Monte Carlo simulation for a stock. Returns simulation summary statistics as JSON string."""
     try:
         ticker = _sanitize_ticker(ticker)
-        prices = fetch_prices(ticker, start="2020-01-01")
+        prices = fetch_prices(ticker, start=_default_start())
         paths = run_monte_carlo(prices, days, simulations)
         final_prices = paths[:, -1]
         return json.dumps({
@@ -84,7 +91,7 @@ def calculate_risk_metrics(ticker: str) -> str:
     """Calculate VaR, CVaR, Sharpe ratio, and max drawdown for a stock. Returns metrics as JSON string."""
     try:
         ticker = _sanitize_ticker(ticker)
-        prices = fetch_prices(ticker, start="2020-01-01").dropna()
+        prices = fetch_prices(ticker, start=_default_start()).dropna()
         paths = run_monte_carlo(prices, days=252, simulations=1000)
         return json.dumps({
             "var": round(float(calculate_historical_var(prices)), 4),
@@ -178,7 +185,7 @@ def run_stress_test_tool(ticker: str, scenario: str = "2008_financial_crisis") -
     """Run historical stress test on a stock. Scenarios: 2008_financial_crisis, covid_2020, dotcom_2000, russia_ukraine_2022, black_monday_1987. Returns stressed VaR vs baseline VaR as JSON."""
     try:
         ticker = _sanitize_ticker(ticker)
-        prices = fetch_prices(ticker, start="2020-01-01")
+        prices = fetch_prices(ticker, start=_default_start())
         paths = run_monte_carlo(prices, simulations=1000, days=252)
         if scenario not in SCENARIOS:
             available = get_available_scenarios()
@@ -194,7 +201,7 @@ def export_analysis_report(ticker: str, format: str = "excel") -> str:
     """Export risk analysis to Excel or PowerBI format. format: 'excel' or 'powerbi'. Returns file path(s) as JSON."""
     try:
         ticker = _sanitize_ticker(ticker)
-        prices = fetch_prices(ticker, start="2020-01-01").dropna()
+        prices = fetch_prices(ticker, start=_default_start()).dropna()
         paths = run_monte_carlo(prices, days=252, simulations=1000)  # seed=42 default
         metrics = {
             "var": round(float(calculate_historical_var(prices)), 4),

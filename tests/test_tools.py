@@ -46,3 +46,17 @@ def test_risk_dict_keys():
     assert "cvar" in parsed
     assert "sharpe" in parsed
     assert "max_drawdown" in parsed
+
+
+from datetime import date, timedelta
+
+from agent.tools.base import _default_start
+
+
+def test_default_start_is_rolling_five_years():
+    expected = date.today() - timedelta(days=5 * 365)
+    assert _default_start() == expected.isoformat()
+
+
+def test_default_start_not_hardcoded_2020():
+    assert _default_start() != "2020-01-01"
