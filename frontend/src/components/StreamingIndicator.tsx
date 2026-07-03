@@ -5,39 +5,35 @@ interface Props {
 export default function StreamingIndicator({ lastToken }: Props) {
   const label = lastToken
     ? lastToken.slice(0, 40) + (lastToken.length > 40 ? "…" : "")
-    : "PROCESSING...";
+    : "Processing...";
 
   return (
-    <div style={{
-      padding: "20px 0",
-      fontFamily: "var(--font-mono)",
-      opacity: 0,
-      animation: "print-in 0.25s ease-out forwards",
-    }}>
-      <div style={{ fontSize: 11, color: "var(--amber)", letterSpacing: 2, marginBottom: 14 }}>
-        ◆ ANALYST PROCESSING
+    <div style={{ padding: "20px 0" }}>
+      <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", letterSpacing: 1.5, marginBottom: 14 }}>
+        Analyst processing
       </div>
 
       {/* Progress track */}
       <div style={{
         width: "100%",
-        height: 4,
-        background: "var(--border)",
+        height: 2,
+        background: "var(--l-surface-2)",
         position: "relative",
         marginBottom: 10,
         overflow: "hidden",
+        borderRadius: 1,
       }}>
         <div style={{
           position: "absolute",
           top: 0, left: 0,
           height: "100%",
-          background: "rgba(255,180,60,0.4)",
+          background: "var(--l-accent)",
           animation: "progress-fill 8s ease-out forwards",
         }} />
       </div>
 
       {/* Last token label */}
-      <div style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: "0.5px" }}>
+      <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)" }}>
         {label}
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import type { FrontierData } from "@/types/events";
 
 export default function FrontierCard({ data }: { data: FrontierData }) {
@@ -5,53 +6,61 @@ export default function FrontierCard({ data }: { data: FrontierData }) {
   const maxSharpe = optimal.max_sharpe;
 
   return (
-    <div className="card-phosphor">
-      <div className="card-label-phosphor">Efficient Frontier</div>
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      style={{ background: "var(--l-surface)", border: "1px solid var(--l-border)", borderRadius: 10, padding: 24 }}
+    >
+      <div className="mono" style={{ fontSize: 12, letterSpacing: 1.5, color: "var(--l-text-dim)", marginBottom: 6 }}>
+        EFFICIENT FRONTIER — FIG. 2
+      </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <span className="font-display" style={{ fontSize: 18, color: "var(--amber-bright)", letterSpacing: 1 }}>
+      <div style={{ marginTop: 12, marginBottom: 14 }}>
+        <span className="serif" style={{ fontSize: 18, color: "var(--l-text)" }}>
           {tickers.join(" · ")}
         </span>
-        <span style={{ fontSize: 9, color: "var(--text-faint)", marginLeft: 10, fontFamily: "var(--font-mono)", letterSpacing: 1 }}>
-          {data.n_portfolios_simulated.toLocaleString()} PORTFOLIOS SIMULATED
+        <span className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", marginLeft: 10, letterSpacing: 0.5 }}>
+          {data.n_portfolios_simulated.toLocaleString()} portfolios simulated
         </span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 18 }}>
         {[
           { key: "max_sharpe",   label: "MAX SHARPE",   portfolio: optimal.max_sharpe,   highlight: true },
           { key: "min_variance", label: "MIN VARIANCE", portfolio: optimal.min_variance,  highlight: false },
           { key: "max_return",   label: "MAX RETURN",   portfolio: optimal.max_return,    highlight: false },
         ].map(({ key, label, portfolio, highlight }) => (
           <div key={key} style={{
-            border: `1px solid ${highlight ? "var(--amber-dim)" : "var(--border-dim)"}`,
-            padding: "8px 10px",
-            background: highlight ? "var(--amber-glow)" : "transparent",
+            border: `1px solid ${highlight ? "var(--l-accent)" : "var(--l-border)"}`,
+            borderRadius: 6,
+            padding: "10px 12px",
+            background: highlight ? "var(--l-accent-soft)" : "transparent",
           }}>
-            <div style={{ fontSize: 8, color: highlight ? "var(--amber)" : "var(--text-faint)", letterSpacing: 2, marginBottom: 6 }}>{label}</div>
-            <div style={{ fontSize: 9, color: "var(--text-dim)", fontFamily: "var(--font-mono)", display: "flex", flexDirection: "column", gap: 3 }}>
-              <span>RET: <span style={{ color: "var(--green)" }}>{(portfolio.expected_return * 100).toFixed(1)}%</span></span>
-              <span>VOL: <span style={{ color: "var(--amber)" }}>{(portfolio.volatility * 100).toFixed(1)}%</span></span>
-              <span>SHP: <span style={{ color: portfolio.sharpe_ratio > 1 ? "var(--green)" : "var(--amber)" }}>{portfolio.sharpe_ratio.toFixed(2)}</span></span>
+            <div className="mono" style={{ fontSize: 11, color: highlight ? "var(--l-accent)" : "var(--l-text-dim)", letterSpacing: 1, marginBottom: 6 }}>{label}</div>
+            <div className="mono" style={{ fontSize: 12, color: "var(--l-text-dim)", display: "flex", flexDirection: "column", gap: 3 }}>
+              <span>Return: <span style={{ color: "var(--l-text)" }}>{(portfolio.expected_return * 100).toFixed(1)}%</span></span>
+              <span>Vol: <span style={{ color: "var(--l-text)" }}>{(portfolio.volatility * 100).toFixed(1)}%</span></span>
+              <span>Sharpe: <span style={{ color: "var(--l-text)" }}>{portfolio.sharpe_ratio.toFixed(2)}</span></span>
             </div>
           </div>
         ))}
       </div>
 
       <div>
-        <div style={{ fontSize: 9, color: "var(--text-faint)", letterSpacing: 2, marginBottom: 8 }}>
+        <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", letterSpacing: 1, marginBottom: 8 }}>
           MAX SHARPE WEIGHTS
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {tickers.map(t => {
             const w = maxSharpe.weights[t] ?? 0;
             return (
               <div key={t} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 50, fontSize: 9, color: "var(--amber-dim)", fontFamily: "var(--font-mono)", flexShrink: 0 }}>{t}</span>
-                <div style={{ flex: 1, height: 8, background: "var(--border)" }}>
-                  <div style={{ height: "100%", width: `${(w * 100).toFixed(1)}%`, background: "var(--amber)", transition: "width 0.4s ease" }} />
+                <span className="mono" style={{ width: 50, fontSize: 11, color: "var(--l-text-dim)", flexShrink: 0 }}>{t}</span>
+                <div style={{ flex: 1, height: 8, background: "var(--l-surface-2)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${(w * 100).toFixed(1)}%`, background: "var(--l-accent)", opacity: 0.7, transition: "width 0.4s ease" }} />
                 </div>
-                <span style={{ width: 40, fontSize: 9, color: "var(--text)", fontFamily: "var(--font-mono)", textAlign: "right" }}>
+                <span className="mono" style={{ width: 42, fontSize: 12, color: "var(--l-text)", textAlign: "right" }}>
                   {(w * 100).toFixed(1)}%
                 </span>
               </div>
@@ -59,6 +68,6 @@ export default function FrontierCard({ data }: { data: FrontierData }) {
           })}
         </div>
       </div>
-    </div>
+    </motion.section>
   );
 }

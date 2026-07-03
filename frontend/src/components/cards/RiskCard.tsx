@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import type { RiskData } from "@/types/events";
 import {
   riskLevel, riskBadgeClass, riskOverallClass, overallRisk,
@@ -9,55 +10,46 @@ export default function RiskCard({ data }: { data: RiskData }) {
   const sharpeLevel: RiskLevel = data.sharpe > 1 ? "LOW" : data.sharpe > 0.5 ? "MODERATE" : "HIGH";
 
   return (
-    <div className="card-phosphor">
-      <div className="card-label-phosphor">Risk Metrics</div>
-      <div style={{ display: "flex", gap: 20, alignItems: "stretch" }}>
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      style={{ background: "var(--l-surface)", border: "1px solid var(--l-border)", borderRadius: 10, padding: 24 }}
+    >
+      <div className="mono" style={{ fontSize: 12, letterSpacing: 1.5, color: "var(--l-text-dim)", marginBottom: 6 }}>
+        RISK METRICS
+      </div>
+      <div style={{ display: "flex", gap: 20, alignItems: "stretch", marginTop: 12 }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 0 }}>
-          <RiskRow label="Value at Risk (95%)"       value={formatPct(data.var_hist)}        level={riskLevel(data.var_hist)}  method="HIST SIM" />
-          <RiskRow label="CVaR / Expected Shortfall" value={formatPct(data.cvar_hist)}       level={riskLevel(data.cvar_hist)} method="HIST SIM" />
-          <RiskRow label="Value at Risk (95%)"       value={formatPct(data.var_sim)}         level={riskLevel(data.var_sim)}   method="GBM SIM" />
-          <RiskRow label="CVaR / Expected Shortfall" value={formatPct(data.cvar_sim)}        level={riskLevel(data.cvar_sim)}  method="GBM SIM" />
-          <RiskRow label="Sharpe Ratio"              value={data.sharpe.toFixed(4)}          level={sharpeLevel} />
-          <RiskRow label="Maximum Drawdown"          value={formatPct(data.max_drawdown)}    level={riskLevel(data.max_drawdown)} />
+          <RiskRow label="95% 1-day VaR (historical)"  value={formatPct(data.var_hist)}        level={riskLevel(data.var_hist)} />
+          <RiskRow label="95% CVaR / expected shortfall (historical)" value={formatPct(data.cvar_hist)} level={riskLevel(data.cvar_hist)} />
+          <RiskRow label="95% VaR (GBM simulation)"    value={formatPct(data.var_sim)}         level={riskLevel(data.var_sim)} />
+          <RiskRow label="95% CVaR (GBM simulation)"   value={formatPct(data.cvar_sim)}         level={riskLevel(data.cvar_sim)} />
+          <RiskRow label="Annualized Sharpe (rf=0)"    value={data.sharpe.toFixed(4)}           level={sharpeLevel} />
+          <RiskRow label="Maximum drawdown"            value={formatPct(data.max_drawdown)}     level={riskLevel(data.max_drawdown)} />
         </div>
         <OverallRating level={overall} />
       </div>
-    </div>
+    </motion.section>
   );
 }
 
-function RiskRow({ label, value, level, method }: { label: string; value: string; level: RiskLevel; method?: string }) {
+function RiskRow({ label, value, level }: { label: string; value: string; level: RiskLevel }) {
   return (
     <div style={{
       display: "flex",
       alignItems: "center",
-      padding: "4px 0",
-      borderBottom: "1px solid var(--border-dim)",
+      padding: "8px 0",
+      borderBottom: "1px solid var(--l-border)",
       gap: 8,
     }}>
-      {/* Fixed-width method badge column */}
-      <div style={{ width: 52, flexShrink: 0 }}>
-        {method && (
-          <span style={{
-            fontSize: 8,
-            color: "var(--text-faint)",
-            border: "1px solid var(--border-dim)",
-            padding: "1px 4px",
-            letterSpacing: "0.5px",
-            display: "inline-block",
-            fontFamily: "var(--font-mono)",
-          }}>
-            {method}
-          </span>
-        )}
-      </div>
       {/* Label */}
-      <span style={{ flex: 1, fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.5px" }}>
+      <span style={{ flex: 1, fontSize: 13, color: "var(--l-text-dim)" }}>
         {label}
       </span>
       {/* Value + risk badge */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span className="font-display" style={{ fontSize: 20, color: "var(--text)", letterSpacing: 1 }}>
+        <span className="mono" style={{ fontSize: 13, color: "var(--l-text)", textAlign: "right" }}>
           {value}
         </span>
         <span className={riskBadgeClass(level)}>{level}</span>
@@ -67,19 +59,20 @@ function RiskRow({ label, value, level, method }: { label: string; value: string
 }
 
 function OverallRating({ level }: { level: RiskLevel }) {
-  const label = level === "MODERATE" ? "MOD" : level;
+  const label = level === "MODERATE" ? "MODERATE" : level;
   return (
     <div style={{
-      width: 100, flexShrink: 0,
-      border: "1px solid var(--border)",
+      width: 120, flexShrink: 0,
+      border: "1px solid var(--l-border)",
+      borderRadius: 8,
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      gap: 6, padding: 12,
-      background: "rgba(255,180,60,0.02)",
+      gap: 8, padding: 16,
+      background: "var(--l-surface-2)",
     }}>
-      <div style={{ fontSize: 8, letterSpacing: 2, textTransform: "uppercase", color: "var(--text-faint)" }}>
+      <div className="mono" style={{ fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--l-text-dim)" }}>
         Risk Rating
       </div>
-      <div className={riskOverallClass(level)}>{label}</div>
+      <div className={`serif ${riskOverallClass(level)}`} style={{ fontSize: 20 }}>{label}</div>
     </div>
   );
 }

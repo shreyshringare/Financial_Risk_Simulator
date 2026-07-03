@@ -11,6 +11,7 @@ import PortfolioCard  from "./cards/PortfolioCard";
 import StressTestCard from "./cards/StressTestCard";
 import FrontierCard   from "./cards/FrontierCard";
 import NewsCard       from "./cards/NewsCard";
+import TitleBlock     from "./report/TitleBlock";
 
 const SAMPLE_QUERIES = [
   "What is the VaR for AAPL?",
@@ -26,25 +27,39 @@ interface Props {
   onQuery?: (q: string) => void;
 }
 
+// Derive the report ticker + subject from the first analytic section available.
+function deriveTitle(sections: ReportSection[]): { ticker: string; subject: string } {
+  for (const section of sections) {
+    switch (section.kind) {
+      case "stock":       return { ticker: section.data.ticker, subject: "Risk Assessment" };
+      case "monte_carlo": return { ticker: section.data.ticker, subject: "Risk Assessment" };
+      case "options":     return { ticker: section.data.ticker, subject: "Options Analysis" };
+      case "news":        return { ticker: section.data.ticker, subject: "Risk Assessment" };
+      case "portfolio":   return { ticker: section.data.tickers.join(", "), subject: "Portfolio Analysis" };
+      case "frontier":    return { ticker: section.data.tickers.join(", "), subject: "Portfolio Analysis" };
+      default: continue;
+    }
+  }
+  return { ticker: "", subject: "Risk Assessment" };
+}
+
 export default function ReportArea({ sections, error, streaming, lastToken, onQuery }: Props) {
   // Error state — shown regardless of sections
   if (error) {
     return (
       <div style={{
-        border: "1px solid rgba(255,49,49,0.4)",
-        background: "rgba(255,49,49,0.04)",
-        padding: "12px 16px",
-        fontFamily: "var(--font-mono)",
-        animation: "print-in 0.25s ease-out forwards",
-        opacity: 0,
+        border: "1px solid rgba(159,18,57,0.4)",
+        background: "#fdf0f3",
+        borderRadius: 10,
+        padding: "16px 20px",
       }}>
-        <div style={{ fontSize: 10, color: "var(--red)", letterSpacing: 1, marginBottom: 6 }}>
-          [ERROR]
+        <div className="mono" style={{ fontSize: 11, color: "#9f1239", letterSpacing: 1, marginBottom: 6 }}>
+          ERROR
         </div>
-        <div style={{ fontSize: 12, color: "rgba(255,49,49,0.7)", lineHeight: 1.6 }}>
+        <div style={{ fontSize: 13, color: "#9f1239", lineHeight: 1.6 }}>
           {error}
         </div>
-        <div style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 8 }}>
+        <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", marginTop: 8 }}>
           Submit a new query to retry.
         </div>
       </div>
@@ -96,12 +111,14 @@ export default function ReportArea({ sections, error, streaming, lastToken, onQu
   }
 
   // Normal: render cards
+  const { ticker, subject } = deriveTitle(sections);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <article style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {sections.length > 0 && <TitleBlock ticker={ticker} subject={subject} />}
       {sections.map((section, i) => (
         <SectionRenderer key={i} section={section} />
       ))}
-    </div>
+    </article>
   );
 }
 

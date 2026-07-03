@@ -1,20 +1,28 @@
+import { motion } from "framer-motion";
 import type { StockData } from "@/types/events";
 import { formatPrice } from "@/lib/riskUtils";
 
 export default function StockCard({ data }: { data: StockData }) {
   return (
-    <div className="card-phosphor">
-      <div className="card-label-phosphor">Stock Overview</div>
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      style={{ background: "var(--l-surface)", border: "1px solid var(--l-border)", borderRadius: 10, padding: 24 }}
+    >
+      <div className="mono" style={{ fontSize: 12, letterSpacing: 1.5, color: "var(--l-text-dim)", marginBottom: 6 }}>
+        MARKET DATA
+      </div>
       <div
-        className="font-display"
-        style={{ fontSize: 48, color: "var(--amber-bright)", textShadow: "0 0 20px var(--amber-dim)", lineHeight: 1, letterSpacing: 2, marginBottom: 10 }}
+        className="serif"
+        style={{ fontSize: 28, color: "var(--l-text)", lineHeight: 1.1, marginBottom: 10 }}
       >
         {formatPrice(data.latest_price)}
       </div>
-      <div style={{ color: "var(--text-faint)", fontSize: 10, letterSpacing: 1, marginBottom: 12 }}>
+      <div className="mono" style={{ color: "var(--l-text-dim)", fontSize: 12, letterSpacing: 1, marginBottom: 16 }}>
         {data.ticker}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "10px 16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "12px 16px" }}>
         <Stat label="Latest"        value={formatPrice(data.latest_price)} />
         <Stat label="Min"           value={formatPrice(data.min_price)} />
         <Stat label="Max"           value={formatPrice(data.max_price)} />
@@ -22,17 +30,17 @@ export default function StockCard({ data }: { data: StockData }) {
         <Stat label="From"          value={data.start} />
         <Stat label="To"            value={data.end} />
       </div>
-    </div>
+    </motion.section>
   );
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontSize: 9, letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 2 }}>
+      <div className="mono" style={{ fontSize: 11, letterSpacing: 1, textTransform: "uppercase", color: "var(--l-text-dim)", marginBottom: 3 }}>
         {label}
       </div>
-      <div style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>{value}</div>
+      <div className="mono" style={{ fontSize: 13, color: "var(--l-text)", textAlign: "right" }}>{value}</div>
     </div>
   );
 }

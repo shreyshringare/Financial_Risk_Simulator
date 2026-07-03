@@ -1,4 +1,5 @@
 // frontend/src/components/cards/OptionsCard.tsx
+import { motion } from "framer-motion";
 import type { OptionsData } from "@/types/events";
 import DataGrid from "./DataGrid";
 
@@ -35,28 +36,28 @@ function SensitivityTable({ data }: { data: OptionsData }) {
 
   const cellColor = (price: number) => {
     const max = bsmPrice(S, strikes[0], 180 / 365, r, sigma, data.option_type);
-    if (max === 0) return "var(--text-faint)";
+    if (max === 0) return "var(--l-text-dim)";
     const ratio = price / max;
-    if (ratio > 0.66) return "var(--amber-bright)";
-    if (ratio > 0.33) return "var(--amber)";
-    return "var(--text-dim)";
+    if (ratio > 0.66) return "var(--l-accent)";
+    if (ratio > 0.33) return "var(--l-text)";
+    return "var(--l-text-dim)";
   };
 
   return (
-    <div style={{ marginTop: 12, borderTop: "1px solid var(--border-dim)", paddingTop: 10 }}>
-      <div style={{ fontSize: 9, color: "var(--text-faint)", letterSpacing: 2, marginBottom: 8 }}>
+    <div style={{ marginTop: 16, borderTop: "1px solid var(--l-border)", paddingTop: 14 }}>
+      <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", letterSpacing: 1, marginBottom: 8 }}>
         SENSITIVITY · BSM PRICE (STRIKE × EXPIRY)
       </div>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, fontFamily: "var(--font-mono)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: "var(--font-mono)" }}>
           <thead>
             <tr>
-              <th style={{ textAlign: "left", fontSize: 8, color: "var(--text-faint)", padding: "3px 6px", letterSpacing: 1 }}>DAYS↓ / K→</th>
+              <th style={{ textAlign: "left", fontSize: 11, color: "var(--l-text-dim)", padding: "4px 6px", letterSpacing: 0.5 }}>Days↓ / K→</th>
               {strikes.map((k, i) => (
                 <th key={k} style={{
-                  fontSize: 8, color: k === data.strike ? "var(--amber)" : "var(--text-faint)",
-                  padding: "3px 6px", letterSpacing: 1, textAlign: "right",
-                  fontWeight: k === data.strike ? "bold" : "normal",
+                  fontSize: 11, color: k === data.strike ? "var(--l-accent)" : "var(--l-text-dim)",
+                  padding: "4px 6px", letterSpacing: 0.5, textAlign: "right",
+                  fontWeight: k === data.strike ? 600 : 400,
                 }}>
                   ${k.toFixed(0)}{strikeOffsets[i] === 0 ? " ●" : ""}
                 </th>
@@ -65,11 +66,11 @@ function SensitivityTable({ data }: { data: OptionsData }) {
           </thead>
           <tbody>
             {expiries.map(days => (
-              <tr key={days} style={{ borderTop: "1px solid var(--border-dim)" }}>
+              <tr key={days} style={{ borderTop: "1px solid rgba(16,24,32,0.06)" }}>
                 <td style={{
-                  fontSize: 8, color: days === T0 ? "var(--amber)" : "var(--text-faint)",
-                  padding: "4px 6px", letterSpacing: 1,
-                  fontWeight: days === T0 ? "bold" : "normal",
+                  fontSize: 11, color: days === T0 ? "var(--l-accent)" : "var(--l-text-dim)",
+                  padding: "5px 6px", letterSpacing: 0.5,
+                  fontWeight: days === T0 ? 600 : 400,
                 }}>
                   {days}d{days === T0 ? " ●" : ""}
                 </td>
@@ -77,9 +78,9 @@ function SensitivityTable({ data }: { data: OptionsData }) {
                   const price = bsmPrice(S, k, days / 365, r, sigma, data.option_type);
                   return (
                     <td key={k} style={{
-                      textAlign: "right", padding: "4px 6px",
+                      textAlign: "right", padding: "5px 6px",
                       color: cellColor(price),
-                      background: k === data.strike && days === T0 ? "var(--amber-glow)" : "transparent",
+                      background: k === data.strike && days === T0 ? "var(--l-accent-soft)" : "transparent",
                     }}>
                       ${price.toFixed(2)}
                     </td>
@@ -90,7 +91,7 @@ function SensitivityTable({ data }: { data: OptionsData }) {
           </tbody>
         </table>
       </div>
-      <div style={{ fontSize: 8, color: "var(--text-faint)", marginTop: 4, fontFamily: "var(--font-mono)" }}>
+      <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", marginTop: 6 }}>
         ● = current params · r=5% · σ={((data.hist_vol ?? 25)).toFixed(1)}%
       </div>
     </div>
@@ -122,7 +123,7 @@ function PriceChart({ data }: { data: OptionsData }) {
   const pMin = 0;
   const pMax = Math.max(...allPrices) * 1.05 || 1;
 
-  const W = 400, H = 80, PX = 8, PY = 6;
+  const W = 400, H = 100, PX = 8, PY = 8;
   const iw = W - PX * 2, ih = H - PY * 2;
 
   const toX = (S: number) => PX + ((S - sMin) / (sMax - sMin)) * iw;
@@ -139,27 +140,37 @@ function PriceChart({ data }: { data: OptionsData }) {
   const cx = toX(S0);
   const cy = toY(data.bsm_price);
 
+  // Gridlines: 4 horizontal
+  const gridLines = [0.25, 0.5, 0.75, 1].map(f => PY + ih * (1 - f));
+
   return (
-    <div style={{ marginTop: 12, borderTop: "1px solid var(--border-dim)", paddingTop: 10 }}>
-      <div style={{ fontSize: 9, color: "var(--text-faint)", letterSpacing: 2, marginBottom: 6 }}>
-        BSM PRICE vs UNDERLYING (60%–140% of ${S0.toFixed(0)})
+    <div style={{ marginTop: 16, borderTop: "1px solid var(--l-border)", paddingTop: 14 }}>
+      <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", letterSpacing: 1, marginBottom: 8 }}>
+        PRICE VS UNDERLYING (60%–140% OF ${S0.toFixed(0)})
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 80, display: "block" }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 100, display: "block", background: "var(--l-surface)" }}>
+        {/* gridlines */}
+        {gridLines.map((y, i) => (
+          <line key={i} x1={PX} y1={y} x2={W - PX} y2={y} stroke="rgba(16,24,32,0.06)" strokeWidth="1" />
+        ))}
         {/* intrinsic value dashed */}
-        <path d={intrinsicPath} fill="none" stroke="var(--text-faint)" strokeWidth="0.8" strokeDasharray="3,3" />
+        <path d={intrinsicPath} fill="none" stroke="#8ba3bd" strokeWidth="1" strokeDasharray="3,3" />
         {/* BSM curve */}
-        <path d={bsmPath} fill="none" stroke="var(--amber)" strokeWidth="1.5" />
+        <path d={bsmPath} fill="none" stroke="var(--l-accent)" strokeWidth="1.75" />
         {/* current price vertical */}
-        <line x1={cx} y1={PY} x2={cx} y2={H - PY} stroke="var(--green)" strokeWidth="0.8" strokeDasharray="2,2" />
+        <line x1={cx} y1={PY} x2={cx} y2={H - PY} stroke="var(--l-text-dim)" strokeWidth="0.8" strokeDasharray="2,2" />
         {/* current price dot */}
-        <circle cx={cx} cy={cy} r="3" fill="var(--amber-bright)" />
+        <circle cx={cx} cy={cy} r="3" fill="var(--l-accent)" />
         {/* labels */}
-        <text x={cx + 3} y={PY + 8} fontSize="7" fill="var(--green)" fontFamily="monospace">S={S0.toFixed(0)}</text>
+        <text x={cx + 4} y={PY + 10} fontSize="9" fill="var(--l-text-dim)" fontFamily="var(--font-mono)">S={S0.toFixed(0)}</text>
       </svg>
-      <div style={{ display: "flex", gap: 12, marginTop: 4, fontSize: 8, color: "var(--text-faint)", fontFamily: "var(--font-mono)" }}>
-        <span><span style={{ color: "var(--amber)" }}>——</span> BSM price</span>
-        <span><span style={{ color: "var(--text-faint)" }}>- - -</span> Intrinsic value</span>
-        <span><span style={{ color: "var(--green)" }}>|</span> Current price</span>
+      <div className="mono" style={{ display: "flex", gap: 14, marginTop: 6, fontSize: 11, color: "var(--l-text-dim)" }}>
+        <span><span style={{ color: "var(--l-accent)" }}>——</span> BSM price</span>
+        <span><span style={{ color: "#8ba3bd" }}>- - -</span> Intrinsic value</span>
+        <span><span style={{ color: "var(--l-text-dim)" }}>|</span> Current price</span>
+      </div>
+      <div style={{ fontSize: 12, color: "var(--l-text-dim)", fontStyle: "italic", marginTop: 10 }}>
+        Fig. — BSM price vs spot at strike ${data.strike}, T={data.expiry_days}d
       </div>
     </div>
   );
@@ -173,34 +184,42 @@ export default function OptionsCard({ data }: { data: OptionsData }) {
   const priceDisplay = `$${data.current_price.toFixed(2)}`;
 
   return (
-    <div className="card-phosphor">
-      <div className="card-label-phosphor">Options Analysis</div>
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      style={{ background: "var(--l-surface)", border: "1px solid var(--l-border)", borderRadius: 10, padding: 24 }}
+    >
+      <div className="mono" style={{ fontSize: 12, letterSpacing: 1.5, color: "var(--l-text-dim)", marginBottom: 6 }}>
+        OPTIONS — BLACK-SCHOLES
+      </div>
 
       {/* Header row: ticker + type badge + params */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <span className="font-display" style={{ fontSize: 22, color: "var(--amber-bright)", letterSpacing: 1 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, marginBottom: 14, flexWrap: "wrap" }}>
+        <span className="serif" style={{ fontSize: 22, color: "var(--l-text)" }}>
           {data.ticker}
         </span>
-        <span style={{
-          fontSize: 9,
-          letterSpacing: 2,
-          padding: "2px 6px",
-          border: `1px solid ${data.option_type === "call" ? "rgba(57,255,20,0.4)" : "rgba(255,49,49,0.4)"}`,
-          color: data.option_type === "call" ? "var(--green)" : "var(--red)",
-          fontFamily: "var(--font-mono)",
+        <span className="mono" style={{
+          fontSize: 11,
+          letterSpacing: 1,
+          padding: "3px 8px",
+          borderRadius: 6,
+          border: `1px solid ${data.option_type === "call" ? "rgba(63,98,18,0.25)" : "rgba(159,18,57,0.25)"}`,
+          color: data.option_type === "call" ? "#3f6212" : "#9f1239",
+          background: data.option_type === "call" ? "#f3f8e8" : "#fdf0f3",
         }}>
           {typeLabel}
         </span>
-        <span style={{ fontSize: 10, color: "var(--text-faint)", fontFamily: "var(--font-mono)", letterSpacing: 0.5 }}>
+        <span className="mono" style={{ fontSize: 12, color: "var(--l-text-dim)", letterSpacing: 0.2 }}>
           ${data.strike} strike · {data.expiry_days}d exp · underlying {priceDisplay}
         </span>
       </div>
 
       {/* Summary stat row: BSM price / IV / intrinsic */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
-        <StatBox label="BSM PRICE"    value={bsmDisplay} />
-        <StatBox label="HIST VOL"     value={ivDisplay} />
-        <StatBox label="INTRINSIC"    value={intrinsicDisplay} />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <StatBox label="BSM price"                            value={bsmDisplay} />
+        <StatBox label="Historical volatility (σ, annualized)" value={ivDisplay} />
+        <StatBox label="Intrinsic value"                       value={intrinsicDisplay} />
       </div>
 
       {/* Call / Put comparison */}
@@ -211,26 +230,26 @@ export default function OptionsCard({ data }: { data: OptionsData }) {
         const putPrice  = bsmPrice(S, K, T, r, sigma, "put");
         const parity    = Math.abs((callPrice - putPrice) - (S - K * Math.exp(-r * T)));
         return (
-          <div style={{ display: "flex", gap: 8, marginBottom: 14, fontSize: 9, fontFamily: "var(--font-mono)" }}>
-            <div style={{ flex: 1, border: "1px solid rgba(57,255,20,0.25)", padding: "5px 8px", background: data.option_type === "call" ? "var(--amber-glow)" : "transparent" }}>
-              <span style={{ color: "var(--green)", letterSpacing: 1 }}>CALL </span>
-              <span style={{ color: "var(--text)" }}>${callPrice.toFixed(2)}</span>
+          <div className="mono" style={{ display: "flex", gap: 10, marginBottom: 18, fontSize: 12 }}>
+            <div style={{ flex: 1, border: "1px solid var(--l-border)", borderRadius: 6, padding: "6px 10px", background: data.option_type === "call" ? "var(--l-accent-soft)" : "transparent" }}>
+              <span style={{ color: "#3f6212", letterSpacing: 0.5 }}>CALL </span>
+              <span style={{ color: "var(--l-text)" }}>${callPrice.toFixed(2)}</span>
             </div>
-            <div style={{ flex: 1, border: "1px solid rgba(255,49,49,0.25)", padding: "5px 8px", background: data.option_type === "put" ? "var(--amber-glow)" : "transparent" }}>
-              <span style={{ color: "var(--red)", letterSpacing: 1 }}>PUT  </span>
-              <span style={{ color: "var(--text)" }}>${putPrice.toFixed(2)}</span>
+            <div style={{ flex: 1, border: "1px solid var(--l-border)", borderRadius: 6, padding: "6px 10px", background: data.option_type === "put" ? "var(--l-accent-soft)" : "transparent" }}>
+              <span style={{ color: "#9f1239", letterSpacing: 0.5 }}>PUT  </span>
+              <span style={{ color: "var(--l-text)" }}>${putPrice.toFixed(2)}</span>
             </div>
-            <div style={{ flex: 1, border: "1px solid var(--border-dim)", padding: "5px 8px" }}>
-              <span style={{ color: "var(--text-faint)", letterSpacing: 1 }}>PARITY ERR </span>
-              <span style={{ color: parity < 0.01 ? "var(--green)" : "var(--amber)" }}>${parity.toFixed(4)}</span>
+            <div style={{ flex: 1, border: "1px solid var(--l-border)", borderRadius: 6, padding: "6px 10px" }}>
+              <span style={{ color: "var(--l-text-dim)", letterSpacing: 0.5 }}>PARITY ERR </span>
+              <span style={{ color: parity < 0.01 ? "#3f6212" : "#92400e" }}>${parity.toFixed(4)}</span>
             </div>
           </div>
         );
       })()}
 
       {/* Greeks DataGrid */}
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 9, color: "var(--text-faint)", letterSpacing: 2, marginBottom: 6 }}>
+      <div style={{ marginBottom: 14 }}>
+        <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", letterSpacing: 1, marginBottom: 8 }}>
           GREEKS
         </div>
         <DataGrid
@@ -247,17 +266,17 @@ export default function OptionsCard({ data }: { data: OptionsData }) {
 
       {/* Interpretation block */}
       <div style={{
-        borderTop: "1px solid var(--border-dim)",
-        paddingTop: 8,
+        borderTop: "1px solid var(--l-border)",
+        paddingTop: 12,
         display: "flex",
         flexDirection: "column",
-        gap: 4,
+        gap: 6,
       }}>
-        <div style={{ fontSize: 9, color: "var(--text-faint)", letterSpacing: 2, marginBottom: 2 }}>
+        <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", letterSpacing: 1, marginBottom: 2 }}>
           INTERPRETATION
         </div>
         {[data.delta_interp, data.vega_interp, data.theta_interp].map((line, i) => (
-          <div key={i} style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", lineHeight: 1.5 }}>
+          <div key={i} style={{ fontSize: 13, color: "var(--l-text-dim)", lineHeight: 1.6 }}>
             {line}
           </div>
         ))}
@@ -268,21 +287,22 @@ export default function OptionsCard({ data }: { data: OptionsData }) {
 
       {/* Price vs underlying chart */}
       <PriceChart data={data} />
-    </div>
+    </motion.section>
   );
 }
 
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
     <div style={{
-      border: "1px solid var(--border-dim)",
-      padding: "6px 10px",
-      background: "var(--amber-glow)",
+      border: "1px solid var(--l-border)",
+      borderRadius: 6,
+      padding: "8px 12px",
+      background: "var(--l-surface-2)",
     }}>
-      <div style={{ fontSize: 8, color: "var(--text-faint)", letterSpacing: 1.5, marginBottom: 4 }}>
+      <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", letterSpacing: 0.5, marginBottom: 4 }}>
         {label}
       </div>
-      <div className="font-display" style={{ fontSize: 18, color: "var(--text)", letterSpacing: 1 }}>
+      <div className="serif" style={{ fontSize: 18, color: "var(--l-text)" }}>
         {value}
       </div>
     </div>

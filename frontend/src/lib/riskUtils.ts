@@ -6,30 +6,30 @@ export function riskLevel(varValue: number): RiskLevel {
   return "HIGH";
 }
 
-// Phosphor glow text color class (defined in globals.css / tailwind)
+// Muted text color class (defined in globals.css)
 export function riskTextClass(level: RiskLevel): string {
   switch (level) {
-    case "LOW":      return "text-phosphor-green";
-    case "MODERATE": return "text-phosphor-yellow";
-    case "HIGH":     return "text-phosphor-red";
+    case "LOW":      return "risk-text-low";
+    case "MODERATE": return "risk-text-moderate";
+    case "HIGH":     return "risk-text-high";
   }
 }
 
-// CSS class for badge (defined in globals.css — includes text-shadow glow)
+// CSS class for badge (defined in globals.css — muted research-note palette)
 export function riskBadgeClass(level: RiskLevel): string {
   switch (level) {
-    case "LOW":      return "badge-low";
-    case "MODERATE": return "badge-moderate";
-    case "HIGH":     return "badge-high";
+    case "LOW":      return "badge-note-low";
+    case "MODERATE": return "badge-note-moderate";
+    case "HIGH":     return "badge-note-high";
   }
 }
 
-// CSS class for overall rating value (large display text + glow)
+// CSS class for overall rating value (serif ink text, no glow)
 export function riskOverallClass(level: RiskLevel): string {
   switch (level) {
-    case "LOW":      return "overall-low";
-    case "MODERATE": return "overall-moderate";
-    case "HIGH":     return "overall-high";
+    case "LOW":      return "overall-note-low";
+    case "MODERATE": return "overall-note-moderate";
+    case "HIGH":     return "overall-note-high";
   }
 }
 

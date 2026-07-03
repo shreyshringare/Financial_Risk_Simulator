@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import type { StressTestData } from "@/types/events";
 
 export default function StressTestCard({ data }: { data: StressTestData }) {
@@ -10,62 +11,66 @@ export default function StressTestCard({ data }: { data: StressTestData }) {
   const baseWidth = Math.min(100, (Math.abs(data.baseline_var_95) / Math.abs(data.stressed_var_95)) * 100);
 
   return (
-    <div className="card-phosphor">
-      <div className="card-label-phosphor">Stress Test</div>
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      style={{ background: "var(--l-surface)", border: "1px solid var(--l-border)", borderRadius: 10, padding: 24 }}
+    >
+      <div className="mono" style={{ fontSize: 12, letterSpacing: 1.5, color: "var(--l-text-dim)", marginBottom: 6 }}>
+        STRESS TEST — {scenarioLabel}
+      </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <div className="font-display" style={{ fontSize: 18, color: "var(--amber-bright)", letterSpacing: 1 }}>
-          {scenarioLabel}
-        </div>
-        <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4, fontFamily: "var(--font-mono)" }}>
+      <div style={{ marginTop: 12, marginBottom: 14 }}>
+        <div style={{ fontSize: 13, color: "var(--l-text-dim)", lineHeight: 1.6 }}>
           {data.description}
         </div>
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <span style={{ fontSize: 9, letterSpacing: 2, padding: "3px 8px", border: "1px solid rgba(255,49,49,0.4)", color: "var(--red)", background: "rgba(255,49,49,0.05)" }}>
-          SHOCK APPLIED: -{shockPct}%
+        <span className="mono" style={{ fontSize: 11, letterSpacing: 1, padding: "3px 10px", borderRadius: 6, border: "1px solid rgba(159,18,57,0.25)", color: "#9f1239", background: "#fdf0f3" }}>
+          Shock applied: -{shockPct}%
         </span>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 9, color: "var(--text-faint)", letterSpacing: 2, marginBottom: 10 }}>VaR COMPARISON (95%)</div>
+      <div style={{ marginBottom: 18 }}>
+        <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", letterSpacing: 1, marginBottom: 10 }}>95% VaR COMPARISON</div>
 
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3, fontSize: 10, fontFamily: "var(--font-mono)" }}>
-            <span style={{ color: "var(--text-faint)" }}>BASELINE</span>
-            <span style={{ color: "var(--green)" }}>{baseVarPct}%</span>
+        <div style={{ marginBottom: 10 }}>
+          <div className="mono" style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 12 }}>
+            <span style={{ color: "var(--l-text-dim)" }}>95% VaR (baseline)</span>
+            <span style={{ color: "var(--l-text)" }}>{baseVarPct}%</span>
           </div>
-          <div style={{ height: 6, background: "var(--border)", position: "relative" }}>
-            <div style={{ height: "100%", width: `${baseWidth}%`, background: "var(--green)", transition: "width 0.5s ease" }} />
+          <div style={{ height: 6, background: "var(--l-surface-2)", borderRadius: 3, position: "relative", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${baseWidth}%`, background: "var(--l-accent)", transition: "width 0.5s ease" }} />
           </div>
         </div>
 
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3, fontSize: 10, fontFamily: "var(--font-mono)" }}>
-            <span style={{ color: "var(--text-faint)" }}>STRESSED</span>
-            <span style={{ color: "var(--red)" }}>{stressVarPct}%</span>
+          <div className="mono" style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 12 }}>
+            <span style={{ color: "var(--l-text-dim)" }}>95% VaR (stressed)</span>
+            <span style={{ color: "#9f1239" }}>{stressVarPct}%</span>
           </div>
-          <div style={{ height: 6, background: "var(--border)", position: "relative" }}>
-            <div style={{ height: "100%", width: "100%", background: "var(--red)", opacity: 0.7 }} />
+          <div style={{ height: 6, background: "var(--l-surface-2)", borderRadius: 3, position: "relative", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: "100%", background: "#9f1239", opacity: 0.8 }} />
           </div>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-        <MiniStat label="WORST CASE" value={`-${worstPct}%`} color="var(--red)" />
-        <MiniStat label="BASE RETURN" value={`${(data.baseline_mean_return * 100).toFixed(1)}%`} color="var(--green)" />
-        <MiniStat label="STRESSED RETURN" value={`${(data.stressed_mean_return * 100).toFixed(1)}%`} color="var(--red)" />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+        <MiniStat label="Worst case loss"      value={`-${worstPct}%`} />
+        <MiniStat label="Baseline mean return" value={`${(data.baseline_mean_return * 100).toFixed(1)}%`} />
+        <MiniStat label="Stressed mean return" value={`${(data.stressed_mean_return * 100).toFixed(1)}%`} />
       </div>
-    </div>
+    </motion.section>
   );
 }
 
-function MiniStat({ label, value, color }: { label: string; value: string; color: string }) {
+function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ border: "1px solid var(--border-dim)", padding: "5px 8px" }}>
-      <div style={{ fontSize: 8, color: "var(--text-faint)", letterSpacing: 1, marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 14, color, fontFamily: "var(--font-mono)" }}>{value}</div>
+    <div style={{ border: "1px solid var(--l-border)", borderRadius: 6, padding: "6px 10px" }}>
+      <div className="mono" style={{ fontSize: 11, color: "var(--l-text-dim)", marginBottom: 4 }}>{label}</div>
+      <div className="mono" style={{ fontSize: 14, color: "var(--l-text)" }}>{value}</div>
     </div>
   );
 }
