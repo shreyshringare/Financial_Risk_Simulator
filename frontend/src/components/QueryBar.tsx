@@ -21,63 +21,49 @@ export default function QueryBar({ onSubmit, disabled }: Props) {
     <form onSubmit={handleSubmit} style={{ display: "flex", gap: 10 }}>
       {/* Input wrap */}
       <div style={{
-        flex: 1, display: "flex", alignItems: "center", gap: 8,
-        border: "1px solid var(--border)",
-        padding: "8px 14px",
-        background: "var(--black)",
-        transition: "border-color 0.15s",
+        flex: 1, display: "flex", alignItems: "center",
+        border: "1px solid var(--l-border)",
+        borderRadius: 10,
+        padding: "12px 16px",
+        background: "var(--l-surface)",
+        transition: "150ms ease-out",
       }}
-        onFocus={(e) => (e.currentTarget.style.borderColor = "var(--amber-dim)")}
-        onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+        onFocus={(e) => (e.currentTarget.style.borderColor = "var(--l-accent)")}
+        onBlur={(e) => (e.currentTarget.style.borderColor = "var(--l-border)")}
       >
-        <span style={{ color: "var(--amber)", fontSize: 14, textShadow: "0 0 8px var(--amber-dim)", flexShrink: 0 }}>▶</span>
         <input
           ref={inputRef}
           type="text"
-          placeholder="Ask about any stock or portfolio… (e.g. What is the VaR for AAPL?)"
+          placeholder="Ask the desk — e.g. What is the VaR for AAPL?"
           disabled={disabled}
           style={{
             flex: 1, background: "none", border: "none", outline: "none",
-            fontFamily: "var(--font-mono)", fontSize: 12,
-            color: "var(--text)", caretColor: "var(--amber)",
+            fontSize: 14,
+            color: "var(--l-text)",
             opacity: disabled ? 0.5 : 1,
           }}
         />
       </div>
 
-      {/* Run button */}
+      {/* Submit button */}
       <button
         type="submit"
         disabled={disabled}
-        className="font-display"
         style={{
-          fontSize: 18, letterSpacing: 2,
-          padding: "8px 20px",
-          background: "none",
-          border: "1px solid var(--amber-dim)",
-          color: "var(--amber)",
+          fontSize: 14,
+          fontWeight: 500,
+          padding: "10px 22px",
+          background: "#003a70",
+          border: "none",
+          borderRadius: 999,
+          color: "#fff",
           cursor: disabled ? "not-allowed" : "pointer",
-          textShadow: "0 0 8px var(--amber-dim)",
           opacity: disabled ? 0.5 : 1,
-          transition: "all 0.12s",
+          transition: "150ms ease-out",
           whiteSpace: "nowrap",
         }}
-        onMouseEnter={(e) => {
-          if (!disabled) {
-            const el = e.currentTarget;
-            el.style.background = "var(--amber-glow)";
-            el.style.borderColor = "var(--amber)";
-            el.style.boxShadow = "0 0 16px rgba(255,180,60,0.15)";
-          }
-        }}
-        onMouseLeave={(e) => {
-          const el = e.currentTarget;
-          el.style.background = "none";
-          el.style.borderColor = "var(--amber-dim)";
-          el.style.boxShadow = "none";
-        }}
       >
-        {disabled ? "RUNNING…" : "RUN ▶"}
+        Ask
       </button>
     </form>
   );

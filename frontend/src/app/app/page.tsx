@@ -6,9 +6,11 @@ import { streamChat, API_BASE } from "@/lib/sseClient";
 import QueryBar from "@/components/QueryBar";
 import ReportArea from "@/components/ReportArea";
 import Sidebar from "@/components/Sidebar";
-import StatusBar from "@/components/StatusBar";
+import AgentTimeline from "@/components/AgentTimeline";
 
 // ── State ─────────────────────────────────────────────────────────────────────
+
+type Step = { label: string; done: boolean };
 
 type State = {
   sections: ReportSection[];
@@ -16,6 +18,7 @@ type State = {
   error: string | null;
   hasAnalysisSections: boolean;
   lastToken: string;
+  steps: Step[];
 };
 
 type Action =
@@ -30,6 +33,7 @@ type Action =
   | { type: "ADD_NEWS";        data: Extract<SSEEvent, { section: "news" }>["data"] }
   | { type: "ADD_CAVEATS" }
   | { type: "APPEND_TOKEN";    token: string }
+  | { type: "STATUS"; tool: string; label: string }
   | { type: "DONE" }
   | { type: "ERROR"; message: string };
 
@@ -39,18 +43,28 @@ const initial: State = {
   error: null,
   hasAnalysisSections: false,
   lastToken: "",
+  steps: [],
 };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "START":
-      return { sections: [], streaming: true, error: null, hasAnalysisSections: false, lastToken: "" };
+      return { sections: [], streaming: true, error: null, hasAnalysisSections: false, lastToken: "", steps: [] };
 
     case "ADD_STOCK":
-      return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "stock", data: action.data }] };
+      return {
+        ...state,
+        hasAnalysisSections: true,
+        sections: [...state.sections, { kind: "stock", data: action.data }],
+        steps: state.steps.map((s) => ({ ...s, done: true })),
+      };
 
     case "ADD_MONTE_CARLO":
-      return { ...state, sections: [...state.sections, { kind: "monte_carlo", data: action.data }] };
+      return {
+        ...state,
+        sections: [...state.sections, { kind: "monte_carlo", data: action.data }],
+        steps: state.steps.map((s) => ({ ...s, done: true })),
+      };
 
     case "ADD_RISK":
       return {
@@ -60,6 +74,7 @@ function reducer(state: State, action: Action): State {
           { kind: "risk", data: action.data },
           { kind: "verdict", content: "", streaming: true },
         ],
+        steps: state.steps.map((s) => ({ ...s, done: true })),
       };
 
     case "ADD_OPTIONS":
@@ -71,6 +86,7 @@ function reducer(state: State, action: Action): State {
           ...state.sections.filter((s) => s.kind !== "prose"),
           { kind: "options", data: action.data },
         ],
+        steps: state.steps.map((s) => ({ ...s, done: true })),
       };
 
     case "APPEND_TOKEN": {
@@ -99,19 +115,44 @@ function reducer(state: State, action: Action): State {
     }
 
     case "ADD_PORTFOLIO":
-      return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "portfolio", data: action.data }] };
+      return {
+        ...state,
+        hasAnalysisSections: true,
+        sections: [...state.sections, { kind: "portfolio", data: action.data }],
+        steps: state.steps.map((s) => ({ ...s, done: true })),
+      };
 
     case "ADD_STRESS_TEST":
-      return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "stress_test", data: action.data }] };
+      return {
+        ...state,
+        hasAnalysisSections: true,
+        sections: [...state.sections, { kind: "stress_test", data: action.data }],
+        steps: state.steps.map((s) => ({ ...s, done: true })),
+      };
 
     case "ADD_FRONTIER":
-      return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "frontier", data: action.data }] };
+      return {
+        ...state,
+        hasAnalysisSections: true,
+        sections: [...state.sections, { kind: "frontier", data: action.data }],
+        steps: state.steps.map((s) => ({ ...s, done: true })),
+      };
 
     case "ADD_NEWS":
-      return { ...state, hasAnalysisSections: true, sections: [...state.sections, { kind: "news", data: action.data }] };
+      return {
+        ...state,
+        hasAnalysisSections: true,
+        sections: [...state.sections, { kind: "news", data: action.data }],
+        steps: state.steps.map((s) => ({ ...s, done: true })),
+      };
 
     case "ADD_CAVEATS":
       return { ...state, sections: [...state.sections, { kind: "caveats" }] };
+
+    case "STATUS": {
+      const steps = [...state.steps.map((s) => ({ ...s, done: true })), { label: action.label, done: false }];
+      return { ...state, steps };
+    }
 
     case "DONE": {
       const sections = state.sections.map((s) =>
@@ -119,7 +160,8 @@ function reducer(state: State, action: Action): State {
           ? { ...s, streaming: false }
           : s
       );
-      return { ...state, streaming: false, sections };
+      const steps = state.steps.map((s) => ({ ...s, done: true }));
+      return { ...state, streaming: false, sections, steps };
     }
 
     case "ERROR":
@@ -136,6 +178,7 @@ export default function Terminal() {
   const [state, dispatch] = useReducer(reducer, initial);
   const [queryCount, setQueryCount] = useState(0);
   const [model, setModel] = useState("groq/llama-3.3-70b");
+  const [connected, setConnected] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.innerWidth > 768;
@@ -144,7 +187,7 @@ export default function Terminal() {
   useEffect(() => {
     fetch(`${API_BASE}/api/health`)
       .then((r) => r.json())
-      .then((d) => { if (d.model) setModel(d.model); })
+      .then((d) => { if (d.model) setModel(d.model); setConnected(true); })
       .catch(() => {});
   }, []);
 
@@ -166,6 +209,7 @@ export default function Terminal() {
             else if (event.section === "caveats")     dispatch({ type: "ADD_CAVEATS" });
             break;
           case "token":  dispatch({ type: "APPEND_TOKEN", token: event.token }); break;
+          case "status": dispatch({ type: "STATUS", tool: event.tool, label: event.label }); break;
           case "done":   dispatch({ type: "DONE" }); break;
           case "error":  dispatch({ type: "ERROR", message: event.message }); break;
         }
@@ -176,75 +220,71 @@ export default function Terminal() {
   }, []);
 
   return (
-    <div className="terminal-shell" style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+    <div className="landing" style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       <Sidebar onQuery={handleQuery} disabled={state.streaming} open={sidebarOpen} />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         <header style={{
           display: "flex", alignItems: "center", gap: 12,
-          padding: "10px 20px",
-          borderBottom: "1px solid var(--border)",
+          padding: "14px 24px",
+          borderBottom: "1px solid var(--l-border)",
           flexShrink: 0,
-          background: "var(--surface)",
         }}>
           <button
             onClick={() => setSidebarOpen(o => !o)}
             style={{
-              background: "none", border: "1px solid var(--border)",
-              color: "var(--amber-dim)", cursor: "pointer",
-              padding: "3px 7px", fontSize: 14,
-              fontFamily: "var(--font-mono)", letterSpacing: 1,
+              background: "none", border: "1px solid var(--l-border)",
+              borderRadius: 6,
+              color: "var(--l-text-dim)", cursor: "pointer",
+              padding: "3px 7px", fontSize: 16,
               flexShrink: 0,
+              transition: "150ms ease-out",
             }}
             title="Toggle sidebar"
           >
             ☰
           </button>
-          <span className="font-display" style={{ fontSize: 22, color: "var(--amber-bright)", textShadow: "0 0 12px var(--amber-dim)", letterSpacing: 1 }}>
-            ◆ FINSIM ANALYST TERMINAL
+          <span className="serif" style={{ fontSize: 19, fontWeight: 600, color: "var(--l-text)" }}>
+            FinSim
           </span>
-          <span style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: "0.5px" }}>
-            v2.0
-          </span>
-          <span style={{ color: "var(--text-faint)" }}>·</span>
-          <span style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: "0.5px" }}>
-            Monte Carlo · VaR · GBM · RAG
+          <span className="mono" style={{ fontSize: 10, letterSpacing: 2, color: "var(--l-text-dim)" }}>
+            RISK RESEARCH DESK
           </span>
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
             {queryCount > 0 && (
-              <span style={{ fontSize: 9, color: "var(--text-faint)", letterSpacing: 1, fontFamily: "var(--font-mono)" }}>
-                [{String(queryCount).padStart(2, "0")} QUERIES]
+              <span className="mono" style={{ fontSize: 10, color: "var(--l-text-dim)" }}>
+                {String(queryCount).padStart(2, "0")} queries
               </span>
             )}
-            <div style={{ fontSize: 10, color: "var(--green)", textShadow: "0 0 8px rgba(57,255,20,0.6)", letterSpacing: 2, display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{
-                width: 6, height: 6, borderRadius: "50%",
-                background: "var(--green)",
-                boxShadow: "0 0 6px var(--green)",
-                display: "inline-block",
-                animation: "pulse-dot 1.4s ease-in-out infinite",
-              }} />
-              LIVE
-            </div>
+            <span className="mono" style={{ fontSize: 10, color: "var(--l-text-dim)" }}>
+              {model}
+            </span>
+            <span style={{ fontSize: 11, color: connected ? "#1a7f37" : "var(--l-text-dim)" }}>
+              {connected ? "● connected" : "○ offline"}
+            </span>
           </div>
         </header>
 
-        <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0, background: "var(--surface)" }}>
-          <QueryBar onSubmit={handleQuery} disabled={state.streaming} />
-        </div>
-
-        <main style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 12, paddingBottom: 40 }}>
-          <ReportArea
-            sections={state.sections}
-            error={state.error}
-            streaming={state.streaming}
-            lastToken={state.lastToken}
-          />
+        <main style={{ flex: 1, overflowY: "auto", background: "var(--l-bg)" }}>
+          <div style={{ maxWidth: 800, margin: "0 auto", padding: "32px 24px 120px" }}>
+            <AgentTimeline steps={state.steps} streaming={state.streaming} />
+            <ReportArea
+              sections={state.sections}
+              error={state.error}
+              streaming={state.streaming}
+              lastToken={state.lastToken}
+              onQuery={handleQuery}
+            />
+          </div>
         </main>
 
-        <StatusBar isStreaming={state.streaming} model={model} />
+        <div style={{ borderTop: "1px solid var(--l-border)", padding: "14px 24px", flexShrink: 0 }}>
+          <div style={{ maxWidth: 800, margin: "0 auto" }}>
+            <QueryBar onSubmit={handleQuery} disabled={state.streaming} />
+          </div>
+        </div>
       </div>
     </div>
   );
