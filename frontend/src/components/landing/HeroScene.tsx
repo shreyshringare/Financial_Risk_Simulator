@@ -59,7 +59,7 @@ function Particles() {
       </bufferGeometry>
       <pointsMaterial
         size={0.03}
-        color="#b45309"
+        color="#cc785c"
         transparent
         opacity={0.35}
         depthWrite={false}

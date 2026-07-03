@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, Fraunces } from "next/font/google";
+import { Inter, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-serif", axes: ["opsz"] });
+const sourceSerif = Source_Serif_4({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
   title: "FinSim — Quantitative Risk Terminal",
@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className={`h-full bg-terminal-black text-text-amber ${inter.variable} ${fraunces.variable}`}>
+      <body className={`h-full bg-terminal-black text-text-amber ${inter.variable} ${sourceSerif.variable}`}>
         {children}
       </body>
     </html>
