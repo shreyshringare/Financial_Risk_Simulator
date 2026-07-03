@@ -32,9 +32,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="FinSim API", lifespan=lifespan)
 
+def _allowed_origins() -> list[str]:
+    raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=_allowed_origins(),
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )

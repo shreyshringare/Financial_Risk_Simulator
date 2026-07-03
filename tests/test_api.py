@@ -1,4 +1,5 @@
 import sys
+import importlib
 from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 
@@ -20,3 +21,18 @@ def test_health():
     data = response.json()
     assert data["status"] == "ok"
     assert "model" in data
+
+
+def test_cors_origins_from_env(monkeypatch):
+    monkeypatch.setenv("ALLOWED_ORIGINS", "https://a.example,https://b.example")
+    import api.main
+    importlib.reload(api.main)
+    origins = api.main._allowed_origins()
+    assert origins == ["https://a.example", "https://b.example"]
+    monkeypatch.delenv("ALLOWED_ORIGINS")
+    importlib.reload(api.main)
+
+
+def test_cors_origins_default_localhost():
+    import api.main
+    assert api.main._allowed_origins() == ["http://localhost:3000"]
