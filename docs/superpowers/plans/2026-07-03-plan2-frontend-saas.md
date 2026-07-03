@@ -107,17 +107,26 @@ Do not remove the VT323 / IBM Plex Mono loading — the terminal still uses them
 
 - [ ] **Step 3: Append landing tokens to `globals.css`**
 
+> **DESIGN PIVOT (2026-07-03, user request):** Landing aesthetic changed from dark
+> SaaS to Anthropic-style light minimalism — cream background, serif display
+> headlines (Fraunces), near-black text, muted burnt-amber accent, thin borders,
+> generous whitespace, NO glow/glassmorphism/neon. Hero 3D becomes subtle: muted
+> amber particles on cream, normal blending. Terminal at /app keeps phosphor look.
+> Token block below is the CURRENT spec; the dark values first committed in
+> 85ee6bb get revised by a follow-up commit.
+
 ```css
-/* ── Landing design tokens ─────────────────────────────── */
+/* ── Landing design tokens (light minimal) ─────────────── */
 :root {
-  --l-bg: #0a0a0b;
-  --l-surface: rgba(255, 255, 255, 0.03);
-  --l-surface-2: rgba(255, 255, 255, 0.06);
-  --l-border: rgba(255, 255, 255, 0.08);
-  --l-text: #ededf0;
-  --l-text-dim: #8a8f98;
-  --l-accent: #ffb43c;
-  --l-accent-soft: rgba(255, 180, 60, 0.14);
+  --l-bg: #faf9f5;
+  --l-surface: #ffffff;
+  --l-surface-2: #f0efe9;
+  --l-border: rgba(20, 20, 19, 0.10);
+  --l-text: #141413;
+  --l-text-dim: #6e6e69;
+  --l-accent: #b45309;
+  --l-accent-soft: rgba(180, 83, 9, 0.10);
+  --l-ink: #141413;
 }
 
 .landing {
@@ -155,11 +164,16 @@ git commit -m "feat(landing): deps (three/r3f/framer-motion), design tokens, sco
 **Files:**
 - Create: `frontend/src/components/landing/HeroScene.tsx`
 
+> **PIVOT NOTE:** light-minimal variant — particles use muted burnt amber
+> `#b45309` with NORMAL blending (no additive glow), opacity ~0.35, fog colored
+> to cream `#faf9f5`, `pointsMaterial size 0.03`. Everything else (GBM logic,
+> camera drift, parallax) unchanged.
+
 - [ ] **Step 1: Implement the scene**
 
 Particles simulate GBM paths on the fly: each particle advances along time-axis
 x, log-price wanders on y, path lane on z. On reaching max age it respawns at
-origin — continuous fan-out. 4000 points, additive blending, amber.
+origin — continuous fan-out. 4000 points, muted amber on cream.
 
 ```tsx
 "use client";
@@ -268,6 +282,13 @@ git commit -m "feat(landing): 3D Monte Carlo particle hero scene (R3F)"
 ---
 
 ### Task 4: Landing section components
+
+> **PIVOT NOTE:** all section code below was written for the dark theme; the
+> dispatched implementation uses the light-minimal restyle: cream bg, serif
+> (`--font-serif`) display headlines, near-black pill CTAs (`#141413` bg, white
+> text, `border-radius: 999px`), thin `--l-border` card borders, NO glow
+> shadows, NO backdrop blur except nav (`rgba(250,249,245,0.8)` + blur). Layout,
+> structure, motion, and copy stay as specified below.
 
 **Files:**
 - Create: `frontend/src/components/landing/Nav.tsx`
