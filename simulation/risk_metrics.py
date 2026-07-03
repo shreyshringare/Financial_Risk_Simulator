@@ -90,3 +90,48 @@ def calculate_historical_cvar(prices: pd.Series, confidence: float = 0.95) -> fl
     returns = prices.pct_change().dropna()
     threshold = calculate_historical_var(prices, confidence)
     return float(returns[returns <= threshold].mean())
+
+
+def calculate_annualized_volatility(prices: pd.Series) -> float:
+    """
+    Annualized volatility from daily returns.
+
+    Args:
+        prices: price series
+
+    Returns:
+        Annualized standard deviation of daily returns (pct_change), scaled by sqrt(252).
+    """
+    daily_returns = prices.pct_change().dropna()
+    return float(daily_returns.std() * sqrt(252))
+
+
+def calculate_beta(prices: pd.Series, benchmark_prices: pd.Series) -> float:
+    """
+    Calculate beta of an asset relative to a benchmark.
+
+    Args:
+        prices: asset price series
+        benchmark_prices: benchmark price series (e.g. SPY)
+
+    Returns:
+        Beta = cov(asset_returns, benchmark_returns) / var(benchmark_returns),
+        computed on aligned (overlapping) daily returns. Returns float("nan") if
+        there is insufficient overlapping data or benchmark variance is 0.
+    """
+    asset_returns = prices.pct_change().dropna()
+    bench_returns = benchmark_prices.pct_change().dropna()
+
+    aligned = pd.concat([asset_returns, bench_returns], axis=1, join="inner").dropna()
+    if aligned.shape[0] < 2:
+        return float("nan")
+
+    asset_aligned = aligned.iloc[:, 0]
+    bench_aligned = aligned.iloc[:, 1]
+
+    bench_var = bench_aligned.var()
+    if bench_var == 0 or pd.isna(bench_var):
+        return float("nan")
+
+    covariance = asset_aligned.cov(bench_aligned)
+    return float(covariance / bench_var)

@@ -25,7 +25,7 @@ def _default_start() -> str:
     return (date.today() - timedelta(days=5 * 365)).isoformat()
 
 from simulation.monte_carlo import run_monte_carlo
-from simulation.risk_metrics import calculate_var, calculate_cvar, calculate_sharpe, calculate_max_drawdown, calculate_historical_var, calculate_historical_cvar
+from simulation.risk_metrics import calculate_var, calculate_cvar, calculate_sharpe, calculate_max_drawdown, calculate_historical_var, calculate_historical_cvar, calculate_annualized_volatility, calculate_beta
 from rag.knowledge_base import get_or_create_knowledge_base, query_knowledge_base
 from portfolio.correlation import fetch_portfolio_data, calculate_correlation_matrix, calculate_portfolio_var
 from simulation.stress_test import run_stress_test, get_available_scenarios, SCENARIOS
@@ -91,8 +91,16 @@ def calculate_risk_metrics(ticker: str) -> str:
     """Calculate VaR, CVaR, Sharpe ratio, and max drawdown for a stock. Returns metrics as JSON string."""
     try:
         ticker = _sanitize_ticker(ticker)
-        prices = fetch_prices(ticker, start=_default_start()).dropna()
+        start = _default_start()
+        prices = fetch_prices(ticker, start=start).dropna()
         paths = run_monte_carlo(prices, days=252, simulations=1000)
+
+        try:
+            benchmark_prices = fetch_prices("SPY", start=start).dropna()
+            beta = round(float(calculate_beta(prices, benchmark_prices)), 4)
+        except Exception:
+            beta = None
+
         return json.dumps({
             "var": round(float(calculate_historical_var(prices)), 4),
             "cvar": round(float(calculate_historical_cvar(prices)), 4),
@@ -102,6 +110,10 @@ def calculate_risk_metrics(ticker: str) -> str:
             "cvar_sim": round(float(calculate_cvar(paths)), 4),
             "sharpe": round(float(calculate_sharpe(prices)), 4),
             "max_drawdown": round(float(calculate_max_drawdown(prices)), 4),
+            "var_99": round(float(calculate_historical_var(prices, confidence=0.99)), 4),
+            "cvar_99": round(float(calculate_historical_cvar(prices, confidence=0.99)), 4),
+            "volatility_annualized": round(float(calculate_annualized_volatility(prices)), 4),
+            "beta_spy": beta,
         })
     except Exception as e:
         return json.dumps({"error": str(e)})

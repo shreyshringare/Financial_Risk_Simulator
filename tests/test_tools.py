@@ -46,6 +46,28 @@ def test_risk_dict_keys():
     assert "cvar" in parsed
     assert "sharpe" in parsed
     assert "max_drawdown" in parsed
+    assert "var_99" in parsed
+    assert "cvar_99" in parsed
+    assert "volatility_annualized" in parsed
+    assert "beta_spy" in parsed
+    # beta computed vs SPY (same mocked prices series returned for both calls) -> ~1.0
+    assert parsed["beta_spy"] == pytest.approx(1.0, abs=1e-3)
+
+
+def test_risk_dict_beta_none_on_benchmark_failure():
+    prices = pd.Series([100.0 + i for i in range(252)], name="Close")
+
+    def fetch_side_effect(ticker, start=""):
+        if ticker == "SPY":
+            raise Exception("Network error")
+        return prices
+
+    with patch("agent.tools.base.fetch_prices", side_effect=fetch_side_effect), \
+         patch("simulation.monte_carlo.run_monte_carlo", return_value=np.ones((100, 252)) * 100.0):
+        result = calculate_risk_metrics.func("AAPL")
+
+    parsed = json.loads(result)
+    assert parsed["beta_spy"] is None
 
 
 from datetime import date, timedelta
