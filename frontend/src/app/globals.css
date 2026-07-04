@@ -84,7 +84,8 @@ body {
   transform: translateY(-2px);
 }
 @media (max-width: 640px) {
-  .landing .nav-links { display: none; }
+  /* beats the component's inline display: flex */
+  .landing .nav-links { display: none !important; }
 }
 
 .spinner-ring {
