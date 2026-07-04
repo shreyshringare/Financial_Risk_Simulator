@@ -67,7 +67,10 @@ def make_executor(llm) -> AgentExecutor:
         agent=agent,
         tools=ALL_TOOLS,
         verbose=True,
-        handle_parsing_errors=True,
+        handle_parsing_errors=(
+            "Format error: respond either with 'Action:' + 'Action Input:' to use a tool, "
+            "or repeat your complete answer on a line starting with 'Final Answer:'."
+        ),
         max_iterations=10,
         max_execution_time=120,
     )
