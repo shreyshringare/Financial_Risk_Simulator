@@ -53,7 +53,11 @@ def fetch_prices(ticker: str, start: str = "2020-01-01") -> pd.Series:
     try:
         data = yf.download(ticker, start=start, progress=False)
         if not data.empty:
-            result = data["Close"].dropna()
+            close = data["Close"]
+            # yfinance 0.2+ returns multi-level columns for single tickers
+            if isinstance(close, pd.DataFrame):
+                close = close.iloc[:, 0]
+            result = close.dropna()
             _set_cached(ticker, start, result)
             return result
     except Exception:
