@@ -56,6 +56,12 @@ async def health():
     return {"status": "ok", "model": _model_name()}
 
 
+@app.get("/api/suggestions")
+async def suggestions():
+    from api.suggestions import build_suggestions
+    return await asyncio.to_thread(build_suggestions)
+
+
 class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []

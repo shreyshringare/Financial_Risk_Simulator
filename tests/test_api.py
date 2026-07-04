@@ -57,3 +57,64 @@ def test_callback_emits_status_on_tool_start():
         "label": _tool_label("fetch_stock_data"),
     }
     assert payload["label"] == "Fetching market data"
+
+
+def test_build_suggestions_from_headlines(monkeypatch):
+    import api.suggestions as suggestions_mod
+
+    fake_articles = [
+        {"title": "Nvidia surges on AI chip demand"},
+        {"title": "Apple faces EU fine"},
+    ]
+    monkeypatch.setattr(suggestions_mod, "fetch_market_headlines", lambda max_articles=10: fake_articles)
+    # Bypass the module-level TTL cache so the monkeypatched fetch is used.
+    monkeypatch.setattr(suggestions_mod, "_get_cached", lambda: None)
+    monkeypatch.setattr(suggestions_mod, "_set_cached", lambda data: None)
+
+    result = suggestions_mod.build_suggestions()
+    queries = [s["query"] for s in result["suggestions"]]
+
+    assert any("NVDA" in q for q in queries)
+    assert any("AAPL" in q for q in queries)
+    assert len(result["suggestions"]) >= 8
+
+    nvda_suggestion = next(s for s in result["suggestions"] if "NVDA" in s["query"])
+    aapl_suggestion = next(s for s in result["suggestions"] if "AAPL" in s["query"])
+    assert nvda_suggestion["source"] is not None
+    assert aapl_suggestion["source"] is not None
+
+
+def test_suggestions_endpoint_returns_200(monkeypatch):
+    import api.suggestions as suggestions_mod
+
+    fake_articles = [{"title": "Nvidia surges on AI chip demand"}]
+    monkeypatch.setattr(suggestions_mod, "fetch_market_headlines", lambda max_articles=10: fake_articles)
+    monkeypatch.setattr(suggestions_mod, "_get_cached", lambda: None)
+    monkeypatch.setattr(suggestions_mod, "_set_cached", lambda data: None)
+
+    mock_agent_module = MagicMock()
+    with __import__("unittest.mock", fromlist=["patch"]).patch.dict(
+        sys.modules, {"agent.agent": mock_agent_module}
+    ):
+        from api.main import app
+        client = TestClient(app)
+        response = client.get("/api/suggestions")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "suggestions" in data
+
+
+def test_build_suggestions_fallback_on_error(monkeypatch):
+    import api.suggestions as suggestions_mod
+
+    def _raise(max_articles=10):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr(suggestions_mod, "fetch_market_headlines", _raise)
+    monkeypatch.setattr(suggestions_mod, "_get_cached", lambda: None)
+    monkeypatch.setattr(suggestions_mod, "_set_cached", lambda data: None)
+
+    result = suggestions_mod.build_suggestions()
+    assert len(result["suggestions"]) >= 8
+    assert all(s["source"] is None for s in result["suggestions"])
