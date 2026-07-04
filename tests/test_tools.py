@@ -84,3 +84,13 @@ def test_default_start_is_rolling_five_years():
 
 def test_default_start_not_hardcoded_2020():
     assert _default_start() != "2020-01-01"
+
+
+def test_normalize_scenario_loose_names():
+    from agent.tools.base import _normalize_scenario
+    assert _normalize_scenario("covid 2020") == "covid_2020"
+    assert _normalize_scenario("COVID") == "covid_2020"
+    assert _normalize_scenario("2008 crisis") == "2008_financial_crisis"
+    assert _normalize_scenario("Black Monday") == "black_monday_1987"
+    assert _normalize_scenario("covid_2020") == "covid_2020"
+    assert _normalize_scenario("nonsense") == "nonsense"

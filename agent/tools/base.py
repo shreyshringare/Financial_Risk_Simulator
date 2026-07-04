@@ -192,11 +192,37 @@ def analyze_portfolio(tickers_csv: str) -> str:
         return json.dumps({"error": str(e)})
 
 
+def _normalize_scenario(scenario: str) -> str:
+    """Map loose scenario names ('covid 2020', 'GFC', '2008 crisis') onto SCENARIOS keys."""
+    s = scenario.strip().lower().replace("-", " ").replace("_", " ")
+    key = s.replace(" ", "_")
+    if key in SCENARIOS:
+        return key
+    aliases = [
+        ("covid", "covid_2020"),
+        ("2008", "2008_financial_crisis"),
+        ("financial crisis", "2008_financial_crisis"),
+        ("gfc", "2008_financial_crisis"),
+        ("dotcom", "dotcom_2000"),
+        ("dot com", "dotcom_2000"),
+        ("tech bubble", "dotcom_2000"),
+        ("russia", "russia_ukraine_2022"),
+        ("ukraine", "russia_ukraine_2022"),
+        ("black monday", "black_monday_1987"),
+        ("1987", "black_monday_1987"),
+    ]
+    for needle, target in aliases:
+        if needle in s:
+            return target
+    return scenario  # unmatched — caller reports available scenarios
+
+
 @tool
 def run_stress_test_tool(ticker: str, scenario: str = "2008_financial_crisis") -> str:
-    """Run historical stress test on a stock. Scenarios: 2008_financial_crisis, covid_2020, dotcom_2000, russia_ukraine_2022, black_monday_1987. Returns stressed VaR vs baseline VaR as JSON."""
+    """Run historical stress test on a stock. Scenarios: 2008_financial_crisis, covid_2020, dotcom_2000, russia_ukraine_2022, black_monday_1987 (loose names like 'covid 2020' accepted). Returns stressed VaR vs baseline VaR as JSON."""
     try:
         ticker = _sanitize_ticker(ticker)
+        scenario = _normalize_scenario(scenario)
         prices = fetch_prices(ticker, start=_default_start())
         paths = run_monte_carlo(prices, simulations=1000, days=252)
         if scenario not in SCENARIOS:
