@@ -5,9 +5,6 @@
 ### ARCH-02 — Vectorstore Init Race Condition
 `agent/tools/base.py:39-45` — `_vectorstore` is a module-level global initialized lazily via `get_vectorstore()`. No lock around initialization. Concurrent first calls to `rag_financial_query` can trigger double-initialization of ChromaDB.
 
-### ARCH-04 — Dual UI with Stale Streamlit App
-`app.py` (Streamlit) coexists with the Next.js + FastAPI stack. `app.py` hardcodes `"GPT-4o"` as the model display name in three places (lines 274, 367, 441) regardless of which model is actually running (Groq/Llama by default per `agent/agent.py` `build_llm()`). Two UIs, no shared state, no clear deprecation path.
-
 ---
 
 ## Low
@@ -32,3 +29,10 @@
 - **DEPLOY-01** (hardcoded localhost in frontend) — `frontend/src/lib/sseClient.ts:3` reads `process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"` (commit d670996).
 - **DEPLOY-02** (CORS locked to localhost) — `_allowed_origins()` in `api/main.py:35-37` reads `ALLOWED_ORIGINS` env var (comma-separated), defaulting to `http://localhost:3000` (commit 3342ab7).
 - **Rate limiting + optional API key** — `api/main.py:17-23` implements a per-IP sliding-window rate limiter (`RATE_LIMIT` env var, default 20 req/min) and an optional `X-API-Key` header check (enabled when `API_KEY` env var is set), enforced at the top of `/api/chat` (lines 67-85).
+
+## Fixed (2026-07-04)
+
+- **ARCH-04** (dual UI with stale Streamlit app) — resolved by removal: `app.py`, `main.py` (CLI prototype), and `data/selenium_scraper.py` deleted in commit 6081bc7; `streamlit`/`selenium`/`webdriver-manager` dropped from `requirements.txt`. Next.js + FastAPI is the single UI.
+- **DATA-01** (yfinance 0.2+ multi-level columns broke every direct-fetch tool) — `fetch_prices()` in `data/market_data.py` squeezes `data["Close"]` DataFrame to Series (commit 817c57f). Found via full tool smoke matrix; 5 tools went DEGRADED→PASS.
+- **AGENT-01** (ReAct parse failures on desk-tone answers) — `Final Answer:` marker enforced in `agent/prompts.py` + recovery message via `handle_parsing_errors` in `agent/agent.py` (commit `fix(agent): enforce Final Answer marker`).
+- **AGENT-02** (stress-test scenario strictness caused tool-call loops) — `_normalize_scenario()` in `agent/tools/base.py` accepts loose names ("covid 2020", "GFC", "Black Monday") (commit 6906be9).
