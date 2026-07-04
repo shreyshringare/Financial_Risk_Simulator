@@ -1,12 +1,14 @@
 "use client";
 
-import { useReducer, useCallback, useState, useEffect } from "react";
+import { useReducer, useCallback, useState, useEffect, useRef } from "react";
 import type { ReportSection, SSEEvent } from "@/types/events";
 import { streamChat, API_BASE } from "@/lib/sseClient";
 import QueryBar from "@/components/QueryBar";
 import ReportArea from "@/components/ReportArea";
 import Sidebar from "@/components/Sidebar";
 import AgentTimeline from "@/components/AgentTimeline";
+import WelcomeModal from "@/components/WelcomeModal";
+import CommandPalette from "@/components/CommandPalette";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -35,7 +37,8 @@ type Action =
   | { type: "APPEND_TOKEN";    token: string }
   | { type: "STATUS"; tool: string; label: string }
   | { type: "DONE" }
-  | { type: "ERROR"; message: string };
+  | { type: "ERROR"; message: string }
+  | { type: "RESTORE"; sections: ReportSection[] };
 
 const initial: State = {
   sections: [],
@@ -167,6 +170,9 @@ function reducer(state: State, action: Action): State {
     case "ERROR":
       return { ...state, streaming: false, error: action.message };
 
+    case "RESTORE":
+      return { ...state, sections: action.sections, streaming: false, error: null, steps: [] };
+
     default:
       return state;
   }
@@ -174,15 +180,24 @@ function reducer(state: State, action: Action): State {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+type HistoryEntry = { query: string; at: number; sections: ReportSection[] };
+
 export default function Terminal() {
   const [state, dispatch] = useReducer(reducer, initial);
   const [queryCount, setQueryCount] = useState(0);
   const [model, setModel] = useState("groq/llama-3.3-70b");
   const [connected, setConnected] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.innerWidth > 768;
-  });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const sectionsRef = useRef<ReportSection[]>([]);
+
+  useEffect(() => {
+    sectionsRef.current = state.sections;
+  }, [state.sections]);
+
+  useEffect(() => {
+    setSidebarOpen(window.innerWidth > 768);
+  }, []);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/health`)
@@ -214,14 +229,31 @@ export default function Terminal() {
           case "error":  dispatch({ type: "ERROR", message: event.message }); break;
         }
       }
+      setHistory((h) => [...h.slice(-9), { query: message, at: Date.now(), sections: sectionsRef.current }]);
     } catch (err) {
       dispatch({ type: "ERROR", message: err instanceof Error ? err.message : "Network error" });
     }
   }, []);
 
+  const handleRestore = useCallback((i: number) => {
+    setHistory((h) => {
+      const entry = h[i];
+      if (entry) dispatch({ type: "RESTORE", sections: entry.sections });
+      return h;
+    });
+  }, []);
+
   return (
     <div className="landing" style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <Sidebar onQuery={handleQuery} disabled={state.streaming} open={sidebarOpen} />
+      <WelcomeModal onQuery={handleQuery} />
+      <CommandPalette onQuery={handleQuery} disabled={state.streaming} />
+      <Sidebar
+        onQuery={handleQuery}
+        disabled={state.streaming}
+        open={sidebarOpen}
+        history={history.map(({ query, at }) => ({ query, at }))}
+        onRestore={handleRestore}
+      />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
@@ -253,6 +285,9 @@ export default function Terminal() {
           </span>
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
+            <span className="mono" style={{ fontSize: 10, color: "var(--l-text-dim)" }}>
+              ⌘K
+            </span>
             {queryCount > 0 && (
               <span className="mono" style={{ fontSize: 10, color: "var(--l-text-dim)" }}>
                 {String(queryCount).padStart(2, "0")} queries

@@ -4,6 +4,8 @@ interface Props {
   onQuery: (q: string) => void;
   disabled: boolean;
   open: boolean;
+  history: { query: string; at: number }[];
+  onRestore: (i: number) => void;
 }
 
 const QUICK_QUERIES = [
@@ -36,7 +38,11 @@ const CAPABILITIES = [
   "💾 Excel & PowerBI Export",
 ];
 
-export default function Sidebar({ onQuery, disabled, open }: Props) {
+function formatTime(at: number): string {
+  return new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+export default function Sidebar({ onQuery, disabled, open, history, onRestore }: Props) {
   return (
     <aside style={{
       width: open ? 200 : 0,
@@ -119,6 +125,45 @@ export default function Sidebar({ onQuery, disabled, open }: Props) {
             ))}
           </div>
         </div>
+
+        {/* Session history */}
+        {history.length > 0 && (
+          <div style={{ padding: 16, borderTop: "1px solid var(--l-border)" }}>
+            <SectionLabel>Session History</SectionLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {history.map((h, i) => (
+                <button
+                  key={h.at}
+                  onClick={() => onRestore(i)}
+                  title={h.query}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    fontSize: 12,
+                    color: "var(--l-text)",
+                    background: "none",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "6px 10px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    transition: "background 150ms ease-out",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "var(--l-surface-2)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+                >
+                  <span className="mono" style={{ fontSize: 10, color: "var(--l-text-dim)", flexShrink: 0 }}>
+                    {formatTime(h.at)}
+                  </span>
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {h.query}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Disclaimer */}
         <div style={{ fontSize: 9, color: "var(--l-text-dim)", textAlign: "center", padding: "12px 16px", lineHeight: 1.5, borderTop: "1px solid var(--l-border)" }}>

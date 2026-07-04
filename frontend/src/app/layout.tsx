@@ -18,11 +18,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className={`h-full bg-terminal-black text-text-amber ${inter.variable} ${sourceSerif.variable}`}>
+      <body className={`h-full bg-white text-[#101820] ${inter.variable} ${sourceSerif.variable}`}>
         {children}
       </body>
     </html>

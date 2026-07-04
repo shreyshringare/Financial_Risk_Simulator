@@ -27,6 +27,18 @@ export default function RiskCard({ data }: { data: RiskData }) {
           <RiskRow label="95% CVaR (GBM simulation)"   value={formatPct(data.cvar_sim)}         level={riskLevel(data.cvar_sim)} />
           <RiskRow label="Annualized Sharpe (rf=0)"    value={data.sharpe.toFixed(4)}           level={sharpeLevel} />
           <RiskRow label="Maximum drawdown"            value={formatPct(data.max_drawdown)}     level={riskLevel(data.max_drawdown)} />
+          {data.var_99 !== undefined && (
+            <RiskRow label="99% 1-day VaR (historical)" value={formatPct(data.var_99)} level={riskLevel(data.var_99)} />
+          )}
+          {data.cvar_99 !== undefined && (
+            <RiskRow label="99% CVaR / expected shortfall" value={formatPct(data.cvar_99)} level={riskLevel(data.cvar_99)} />
+          )}
+          {data.volatility_annualized !== undefined && (
+            <PlainRow label="Volatility (σ, annualized)" value={formatPct(data.volatility_annualized)} />
+          )}
+          {data.beta_spy !== undefined && data.beta_spy !== null && (
+            <PlainRow label="Beta vs SPY (5y daily)" value={data.beta_spy.toFixed(2)} />
+          )}
         </div>
         <OverallRating level={overall} />
       </div>
@@ -54,6 +66,25 @@ function RiskRow({ label, value, level }: { label: string; value: string; level:
         </span>
         <span className={riskBadgeClass(level)}>{level}</span>
       </div>
+    </div>
+  );
+}
+
+function PlainRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      padding: "8px 0",
+      borderBottom: "1px solid var(--l-border)",
+      gap: 8,
+    }}>
+      <span style={{ flex: 1, fontSize: 13, color: "var(--l-text-dim)" }}>
+        {label}
+      </span>
+      <span className="mono" style={{ fontSize: 13, color: "var(--l-text)", textAlign: "right" }}>
+        {value}
+      </span>
     </div>
   );
 }

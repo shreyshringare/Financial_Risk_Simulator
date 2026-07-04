@@ -1,71 +1,11 @@
 @import "tailwindcss";
 
-/* ── Tailwind v4 theme — phosphor terminal ── */
+/* ── Tailwind v4 theme ── */
 @theme {
-  /* Solid phosphor colors → become text-*, bg-*, border-* utilities */
-  --color-terminal-black:  #050505;
-  --color-surface:         #0A0A0A;
-  --color-card:            #0F0F0F;
-  --color-amber:           #FFB43C;
-  --color-amber-bright:    #FFD280;
-  --color-phosphor-green:  #39FF14;
-  --color-phosphor-yellow: #FFD700;
-  --color-phosphor-red:    #FF3131;
-  --color-text-amber:      #F0C060;
-
-  /* Fonts */
-  --font-display: 'VT323', monospace;
-  --font-mono:    'IBM Plex Mono', monospace;
-
-  /* Animations */
-  --animate-print-in:      print-in      0.25s ease-out  forwards;
-  --animate-blink-cursor:  blink-cursor  0.9s  step-end  infinite;
-  --animate-pulse-glow:    pulse-glow    1.4s  ease-in-out infinite;
-  --animate-pulse-dot:     pulse-dot     1.4s  ease-in-out infinite;
-}
-
-/* ── Phosphor CSS variables (rgba — used directly in custom classes) ── */
-:root {
-  --black:        #050505;
-  --surface:      #0A0A0A;
-  --card:         #0F0F0F;
-  --border:       rgba(255, 180, 60, 0.12);
-  --border-dim:   rgba(255, 180, 60, 0.06);
-
-  --amber:        #FFB43C;
-  --amber-bright: #FFD280;
-  --amber-dim:    rgba(255, 180, 60, 0.45);
-  --amber-glow:   rgba(255, 180, 60, 0.08);
-
-  --green:   #39FF14;
-  --yellow:  #FFD700;
-  --red:     #FF3131;
-
-  --text:       #F0C060;
-  --text-dim:   rgba(240, 192, 96, 0.55);
-  --text-faint: rgba(240, 192, 96, 0.28);
-
-  color-scheme: dark;
+  --font-mono: 'IBM Plex Mono', monospace;
 }
 
 /* ── Keyframes ── */
-@keyframes print-in {
-  0%   { opacity: 0; transform: translateY(4px); clip-path: inset(0 0 100% 0); }
-  40%  { opacity: 1; clip-path: inset(0 0 0 0); }
-  100% { opacity: 1; transform: translateY(0); clip-path: inset(0 0 0 0); }
-}
-@keyframes blink-cursor {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
-}
-@keyframes pulse-glow {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
-}
-@keyframes pulse-dot {
-  0%, 100% { transform: scale(1); }
-  50%       { transform: scale(0.7); }
-}
 @keyframes progress-fill {
   0%   { width: 0%; }
   60%  { width: 70%; }
@@ -76,142 +16,20 @@
 /* ── Base ── */
 html, body { height: 100%; }
 body {
-  background: var(--black);
-  color: var(--text);
-  font-family: var(--font-mono);
+  background: #ffffff;
+  color: #101820;
+  font-family: var(--font-inter), system-ui, sans-serif;
   font-size: 13px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Scanline overlay (terminal only) ── */
-.terminal-shell::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.18) 2px,
-    rgba(0, 0, 0, 0.18) 4px
-  );
-  pointer-events: none;
-  z-index: 9999;
-}
-
-/* ── CRT edge vignette (terminal only) ── */
-.terminal-shell::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.65) 100%);
-  pointer-events: none;
-  z-index: 9998;
-}
-
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--black); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--amber-dim); }
-* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
-
-/* ── Card: phosphor terminal card base ── */
-.card-phosphor {
-  border: 1px solid var(--border);
-  background: var(--card);
-  padding: 10px 14px;
-  position: relative;
-  animation: print-in 0.25s ease-out forwards;
-  opacity: 0;
-}
-.card-phosphor::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 3px; height: 24px;
-  background: var(--amber-dim);
-}
-
-/* ── Card label with amber line decoration ── */
-.card-label-phosphor {
-  font-size: 9px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.card-label-phosphor::before {
-  content: '';
-  display: inline-block;
-  width: 16px; height: 1px;
-  background: var(--amber-dim);
-  flex-shrink: 0;
-}
-.card-label-phosphor::after {
-  content: '';
-  flex: 1; height: 1px;
-  background: var(--border-dim);
-}
-
-/* ── Risk badges with phosphor glow ── */
-.badge-low {
-  font-size: 9px;
-  letter-spacing: 2px;
-  padding: 2px 7px;
-  border: 1px solid rgba(57, 255, 20, 0.3);
-  background: rgba(57, 255, 20, 0.05);
-  color: var(--green);
-  text-shadow: 0 0 6px rgba(57, 255, 20, 0.4);
-  min-width: 64px;
-  text-align: center;
-  display: inline-block;
-}
-.badge-moderate {
-  font-size: 9px;
-  letter-spacing: 2px;
-  padding: 2px 7px;
-  border: 1px solid rgba(255, 215, 0, 0.3);
-  background: rgba(255, 215, 0, 0.05);
-  color: var(--yellow);
-  text-shadow: 0 0 6px rgba(255, 215, 0, 0.3);
-  min-width: 64px;
-  text-align: center;
-  display: inline-block;
-}
-.badge-high {
-  font-size: 9px;
-  letter-spacing: 2px;
-  padding: 2px 7px;
-  border: 1px solid rgba(255, 49, 49, 0.3);
-  background: rgba(255, 49, 49, 0.05);
-  color: var(--red);
-  text-shadow: 0 0 6px rgba(255, 49, 49, 0.4);
-  min-width: 64px;
-  text-align: center;
-  display: inline-block;
-}
-
-/* ── Overall risk rating (large VT323 display) ── */
-.overall-low      { color: var(--green);  text-shadow: 0 0 12px rgba(57,255,20,0.5);  font-family: var(--font-display); font-size: 22px; letter-spacing: 2px; }
-.overall-moderate { color: var(--yellow); text-shadow: 0 0 12px rgba(255,215,0,0.4);  font-family: var(--font-display); font-size: 22px; letter-spacing: 2px; }
-.overall-high     { color: var(--red);    text-shadow: 0 0 12px rgba(255,49,49,0.5);  font-family: var(--font-display); font-size: 22px; letter-spacing: 2px; }
-
-/* ── Streaming cursor (amber block) ── */
-.streaming-cursor::after {
-  content: '';
-  display: inline-block;
-  width: 8px; height: 14px;
-  background: var(--amber);
-  animation: blink-cursor 0.9s step-end infinite;
-  vertical-align: text-bottom;
-  margin-left: 2px;
-  box-shadow: 0 0 6px var(--amber);
-}
+::-webkit-scrollbar-track { background: #ffffff; }
+::-webkit-scrollbar-thumb { background: rgba(16, 24, 32, 0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(16, 24, 32, 0.35); }
+* { scrollbar-width: thin; scrollbar-color: rgba(16, 24, 32, 0.2) transparent; }
 
 /* ── Analyst prose (verdict/prose markdown) — Research Note light typesetting ── */
 .analyst-prose {
@@ -231,12 +49,6 @@ body {
 .analyst-prose ul  { list-style: disc; padding-left: 1.5em; }
 .analyst-prose li  { margin: 0.25em 0; }
 .analyst-prose code { font-family: var(--font-mono); color: var(--l-accent); font-size: 12px; }
-
-/* ── Responsive: auto-collapse sidebar on narrow screens ── */
-@media (max-width: 768px) {
-  /* Prevent body scroll when sidebar overlay is open */
-  body.sidebar-open { overflow: hidden; }
-}
 
 /* ── Landing design tokens (light minimal, Anthropic-inspired) ── */
 :root {
@@ -261,7 +73,7 @@ body {
 .landing .serif { font-family: var(--font-serif), Georgia, serif; }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing * { animation: none !important; transition: none !important; }
+  * { animation: none !important; transition: none !important; }
 }
 
 .landing .feature-card {

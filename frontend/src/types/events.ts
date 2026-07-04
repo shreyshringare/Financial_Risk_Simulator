@@ -83,6 +83,10 @@ export type RiskData = {
   cvar_sim: number;
   sharpe: number;
   max_drawdown: number;
+  var_99?: number;
+  cvar_99?: number;
+  volatility_annualized?: number;
+  beta_spy?: number | null;
 };
 
 export type OptionsData = {
