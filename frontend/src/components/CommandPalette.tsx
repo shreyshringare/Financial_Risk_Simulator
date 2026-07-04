@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import type { Suggestion } from "@/lib/suggestions";
 
-const COMMANDS = [
+const FALLBACK_COMMANDS = [
   "What is the VaR for AAPL?",
   "Run a Monte Carlo simulation for TSLA",
   "Analyze a portfolio of AAPL, MSFT, GOOGL",
@@ -17,24 +18,29 @@ const COMMANDS = [
 interface Props {
   onQuery: (q: string) => void;
   disabled: boolean;
+  suggestions?: Suggestion[];
 }
 
-export default function CommandPalette({ onQuery, disabled }: Props) {
+export default function CommandPalette({ onQuery, disabled, suggestions }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const commands = suggestions && suggestions.length > 0
+    ? suggestions.map((s) => s.query)
+    : FALLBACK_COMMANDS;
+
   const rows = useMemo(() => {
     const q = query.trim();
     const filtered = q
-      ? COMMANDS.filter((c) => c.toLowerCase().includes(q.toLowerCase()))
-      : COMMANDS;
+      ? commands.filter((c) => c.toLowerCase().includes(q.toLowerCase()))
+      : commands;
     const hasExact = filtered.some((c) => c.toLowerCase() === q.toLowerCase());
     const list = [...filtered];
     if (q && !hasExact) list.push(`Ask: ${q}`);
     return list;
-  }, [query]);
+  }, [query, commands]);
 
   // Global Ctrl/Cmd+K toggle
   useEffect(() => {

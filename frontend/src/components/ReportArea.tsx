@@ -1,4 +1,5 @@
 import type { ReportSection } from "@/types/events";
+import type { Suggestion } from "@/lib/suggestions";
 import StockCard from "./cards/StockCard";
 import MonteCarloCard from "./cards/MonteCarloCard";
 import RiskCard from "./cards/RiskCard";
@@ -25,6 +26,7 @@ interface Props {
   streaming: boolean;
   lastToken: string;
   onQuery?: (q: string) => void;
+  suggestions?: Suggestion[];
 }
 
 // Derive the report ticker + subject from the first analytic section available.
@@ -43,7 +45,10 @@ function deriveTitle(sections: ReportSection[]): { ticker: string; subject: stri
   return { ticker: "", subject: "Risk Assessment" };
 }
 
-export default function ReportArea({ sections, error, streaming, lastToken, onQuery }: Props) {
+export default function ReportArea({ sections, error, streaming, lastToken, onQuery, suggestions }: Props) {
+  const emptyStateQueries = suggestions && suggestions.length > 0
+    ? suggestions.slice(0, 3).map((s) => s.query)
+    : SAMPLE_QUERIES;
   // Error state — shown regardless of sections
   if (error) {
     return (
@@ -80,7 +85,7 @@ export default function ReportArea({ sections, error, streaming, lastToken, onQu
           Monte Carlo · VaR · Options · Stress tests — in plain English
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
-          {SAMPLE_QUERIES.map((q) => (
+          {emptyStateQueries.map((q) => (
             <button
               key={q}
               onClick={() => onQuery?.(q)}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import type { Suggestion } from "@/lib/suggestions";
 
 const STORAGE_KEY = "finsim-welcomed";
 
@@ -13,10 +14,14 @@ const SAMPLE_QUERIES = [
 
 interface Props {
   onQuery: (q: string) => void;
+  suggestions?: Suggestion[];
 }
 
-export default function WelcomeModal({ onQuery }: Props) {
+export default function WelcomeModal({ onQuery, suggestions }: Props) {
   const [open, setOpen] = useState(false);
+  const sampleQueries = suggestions && suggestions.length > 0
+    ? suggestions.slice(0, 3).map((s) => s.query)
+    : SAMPLE_QUERIES;
 
   useEffect(() => {
     try {
@@ -104,7 +109,7 @@ export default function WelcomeModal({ onQuery }: Props) {
             </p>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-              {SAMPLE_QUERIES.map((q) => (
+              {sampleQueries.map((q) => (
                 <button
                   key={q}
                   onClick={() => handleChipClick(q)}

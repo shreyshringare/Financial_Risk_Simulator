@@ -3,6 +3,7 @@
 import { useReducer, useCallback, useState, useEffect, useRef } from "react";
 import type { ReportSection, SSEEvent } from "@/types/events";
 import { streamChat, API_BASE } from "@/lib/sseClient";
+import { fetchSuggestions, type Suggestion } from "@/lib/suggestions";
 import QueryBar from "@/components/QueryBar";
 import ReportArea from "@/components/ReportArea";
 import Sidebar from "@/components/Sidebar";
@@ -189,6 +190,7 @@ export default function Terminal() {
   const [connected, setConnected] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const sectionsRef = useRef<ReportSection[]>([]);
 
   useEffect(() => {
@@ -204,6 +206,10 @@ export default function Terminal() {
       .then((r) => r.json())
       .then((d) => { if (d.model) setModel(d.model); setConnected(true); })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchSuggestions().then(setSuggestions);
   }, []);
 
   const handleQuery = useCallback(async (message: string) => {
@@ -245,14 +251,15 @@ export default function Terminal() {
 
   return (
     <div className="landing" style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <WelcomeModal onQuery={handleQuery} />
-      <CommandPalette onQuery={handleQuery} disabled={state.streaming} />
+      <WelcomeModal onQuery={handleQuery} suggestions={suggestions} />
+      <CommandPalette onQuery={handleQuery} disabled={state.streaming} suggestions={suggestions} />
       <Sidebar
         onQuery={handleQuery}
         disabled={state.streaming}
         open={sidebarOpen}
         history={history.map(({ query, at }) => ({ query, at }))}
         onRestore={handleRestore}
+        suggestions={suggestions}
       />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -311,6 +318,7 @@ export default function Terminal() {
               streaming={state.streaming}
               lastToken={state.lastToken}
               onQuery={handleQuery}
+              suggestions={suggestions}
             />
           </div>
         </main>

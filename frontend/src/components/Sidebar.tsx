@@ -1,24 +1,15 @@
 "use client";
 
+import type { Suggestion } from "@/lib/suggestions";
+
 interface Props {
   onQuery: (q: string) => void;
   disabled: boolean;
   open: boolean;
   history: { query: string; at: number }[];
   onRestore: (i: number) => void;
+  suggestions: Suggestion[];
 }
-
-const QUICK_QUERIES = [
-  "What is the VaR for AAPL?",
-  "Price AAPL $200 call expiring in 90 days",
-  "Price TSLA $300 put expiring in 60 days",
-  "Run Monte Carlo on RELIANCE.NS",
-  "Analyze portfolio: AAPL, MSFT, TSLA",
-  "2008 crisis stress test on TSLA",
-  "Efficient frontier for AAPL, GOOGL, MSFT",
-  "Latest news for NVDA",
-  "Export AAPL report to Excel",
-];
 
 const MARKETS = [
   { flag: "🇺🇸", label: "NYSE/NASDAQ" },
@@ -42,7 +33,10 @@ function formatTime(at: number): string {
   return new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function Sidebar({ onQuery, disabled, open, history, onRestore }: Props) {
+export default function Sidebar({ onQuery, disabled, open, history, onRestore, suggestions }: Props) {
+  const quickQueries = suggestions.slice(0, 8);
+  const hasLive = quickQueries.some((s) => s.source);
+
   return (
     <aside style={{
       width: open ? 200 : 0,
@@ -93,13 +87,33 @@ export default function Sidebar({ onQuery, disabled, open, history, onRestore }:
 
         {/* Quick queries */}
         <div style={{ padding: 16, flex: 1 }}>
-          <SectionLabel>Quick Queries</SectionLabel>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+            <div className="mono" style={{ fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: "var(--l-text-dim)" }}>
+              Quick Queries
+            </div>
+            {hasLive && (
+              <span
+                className="mono"
+                style={{
+                  fontSize: 8,
+                  letterSpacing: 1,
+                  color: "#fff",
+                  background: "var(--l-accent)",
+                  padding: "1px 5px",
+                  borderRadius: 3,
+                }}
+              >
+                LIVE
+              </span>
+            )}
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {QUICK_QUERIES.map((q) => (
+            {quickQueries.map((s) => (
               <button
-                key={q}
-                onClick={() => !disabled && onQuery(q)}
+                key={s.query}
+                onClick={() => !disabled && onQuery(s.query)}
                 disabled={disabled}
+                title={s.source ? `From today's headlines: ${s.source}` : undefined}
                 style={{
                   fontSize: 13,
                   color: "var(--l-text)",
@@ -110,6 +124,7 @@ export default function Sidebar({ onQuery, disabled, open, history, onRestore }:
                   transition: "150ms ease-out",
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                   opacity: disabled ? 0.4 : 1,
+                  display: "flex", alignItems: "center", gap: 4,
                 }}
                 onMouseEnter={(e) => {
                   if (!disabled) {
@@ -120,7 +135,12 @@ export default function Sidebar({ onQuery, disabled, open, history, onRestore }:
                   e.currentTarget.style.background = "none";
                 }}
               >
-                {q}
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{s.query}</span>
+                {s.source && (
+                  <span className="mono" style={{ fontSize: 9, color: "var(--l-text-dim)", flexShrink: 0 }}>
+                    · from today&apos;s headlines
+                  </span>
+                )}
               </button>
             ))}
           </div>
