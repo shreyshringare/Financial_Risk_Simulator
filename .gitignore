@@ -15,6 +15,10 @@ build/
 .venv/
 venv/
 
+# Generated output (recreated on each run)
+reports/
+powerbi_data/
+
 # IDE
 .vscode/
 .idea/
