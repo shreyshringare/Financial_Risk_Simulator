@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import threading
 from datetime import date, timedelta
 import numpy as np
 import pandas as pd
@@ -37,11 +38,14 @@ from portfolio.efficient_frontier import compute_efficient_frontier, find_optima
 from data.market_data import fetch_prices, get_data_source_status
 
 _vectorstore = None
+_vectorstore_lock = threading.Lock()
 
 def get_vectorstore():
     global _vectorstore
     if _vectorstore is None:
-        _vectorstore = get_or_create_knowledge_base()
+        with _vectorstore_lock:
+            if _vectorstore is None:
+                _vectorstore = get_or_create_knowledge_base()
     return _vectorstore
 
 
@@ -303,7 +307,16 @@ def get_market_movers(category: str = "gainers") -> str:
         return f"Could not fetch market movers for category '{category}': {str(e)}"
 
 
-ALL_TOOLS = [fetch_stock_data, run_monte_carlo_simulation, calculate_risk_metrics,
-             explain_risk, rag_financial_query,
-             analyze_portfolio, run_stress_test_tool, export_analysis_report,
-             get_financial_news, compute_efficient_frontier_tool, get_market_movers]
+def _get_all_tools():
+    """Lazily import analyze_option to avoid circular imports, then return full tool list."""
+    from agent.tools.options import analyze_option  # noqa: PLC0415
+    return [
+        fetch_stock_data, run_monte_carlo_simulation, calculate_risk_metrics,
+        explain_risk, rag_financial_query,
+        analyze_portfolio, run_stress_test_tool, export_analysis_report,
+        get_financial_news, compute_efficient_frontier_tool, get_market_movers,
+        analyze_option,
+    ]
+
+
+ALL_TOOLS = _get_all_tools()
