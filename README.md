@@ -4,13 +4,9 @@
 
 Ask a question. A LangChain ReAct agent (Groq Llama 3.3 70B) runs Monte Carlo simulations, VaR/CVaR, options pricing, portfolio optimization, and stress tests — then composes an analyst research note streamed live to your browser.
 
-**[Live Demo](https://finsim-frontend.onrender.com)** · **[API Health](https://financial-risk-simulator-i5jq.onrender.com/api/health)**
+**[Live Demo](https://finsim-frontend.onrender.com)** &nbsp;·&nbsp; **[API](https://financial-risk-simulator-i5jq.onrender.com/api/health)** &nbsp;·&nbsp; **[GitHub](https://github.com/shreyshringare/Financial_Risk_Simulator)**
 
 > Free tier — backend cold-starts in ~30s after idle. The UI shows "warming up…" automatically.
-
-![Landing page](docs/screenshots/landing.png)
-
-![Research desk](docs/screenshots/app-desk.png)
 
 ---
 
