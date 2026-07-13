@@ -188,6 +188,7 @@ export default function Terminal() {
   const [queryCount, setQueryCount] = useState(0);
   const [model, setModel] = useState("groq/llama-3.3-70b");
   const [connected, setConnected] = useState(false);
+  const [warming, setWarming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -202,10 +203,30 @@ export default function Terminal() {
   }, []);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/health`)
-      .then((r) => r.json())
-      .then((d) => { if (d.model) setModel(d.model); setConnected(true); })
-      .catch(() => {});
+    let cancelled = false;
+    let attempts = 0;
+    const MAX = 20; // ~60s total
+
+    async function ping() {
+      if (cancelled) return;
+      try {
+        const r = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(8000) });
+        const d = await r.json();
+        if (!cancelled) {
+          if (d.model) setModel(d.model);
+          setConnected(true);
+          setWarming(false);
+        }
+      } catch {
+        if (cancelled) return;
+        attempts++;
+        if (attempts === 1) setWarming(true);
+        if (attempts < MAX) setTimeout(ping, 3000);
+      }
+    }
+
+    ping();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -303,8 +324,8 @@ export default function Terminal() {
             <span className="mono" style={{ fontSize: 10, color: "var(--l-text-dim)" }}>
               {model}
             </span>
-            <span style={{ fontSize: 11, color: connected ? "#1a7f37" : "var(--l-text-dim)" }}>
-              {connected ? "● connected" : "○ offline"}
+            <span style={{ fontSize: 11, color: connected ? "#1a7f37" : warming ? "#b45309" : "var(--l-text-dim)" }}>
+              {connected ? "● connected" : warming ? "○ warming up…" : "○ offline"}
             </span>
           </div>
         </header>
