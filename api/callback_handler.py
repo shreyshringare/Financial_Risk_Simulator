@@ -14,6 +14,7 @@ _TOOL_SECTION_MAP = {
     "run_stress_test_tool":          "stress_test",
     "compute_efficient_frontier_tool": "frontier",
     "get_financial_news":            "news",
+    "export_analysis_report":        "export",
 }
 
 # Tool name → human-readable status label for the agent reasoning timeline

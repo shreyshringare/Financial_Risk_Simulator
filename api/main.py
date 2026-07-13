@@ -1,13 +1,14 @@
 import os
 import asyncio
 import time
+import pathlib
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -54,6 +55,24 @@ def _model_name() -> str:
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "model": _model_name()}
+
+
+_EXPORT_DIRS = ["reports", "powerbi_data"]
+
+@app.get("/api/download/{filename}")
+async def download_file(filename: str):
+    safe = pathlib.Path(filename).name  # strip any path traversal
+    if not safe or safe.startswith("."):
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+    for dir_name in _EXPORT_DIRS:
+        path = pathlib.Path(dir_name) / safe
+        if path.exists() and path.is_file():
+            return FileResponse(
+                path=str(path),
+                filename=safe,
+                media_type="application/octet-stream",
+            )
+    raise HTTPException(status_code=404, detail="File not found or expired.")
 
 
 @app.get("/api/suggestions")

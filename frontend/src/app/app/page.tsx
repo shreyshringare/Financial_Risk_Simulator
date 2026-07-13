@@ -34,6 +34,7 @@ type Action =
   | { type: "ADD_STRESS_TEST"; data: Extract<SSEEvent, { section: "stress_test" }>["data"] }
   | { type: "ADD_FRONTIER";    data: Extract<SSEEvent, { section: "frontier" }>["data"] }
   | { type: "ADD_NEWS";        data: Extract<SSEEvent, { section: "news" }>["data"] }
+  | { type: "ADD_EXPORT";      data: Extract<SSEEvent, { section: "export" }>["data"] }
   | { type: "ADD_CAVEATS" }
   | { type: "APPEND_TOKEN";    token: string }
   | { type: "STATUS"; tool: string; label: string }
@@ -142,6 +143,9 @@ function reducer(state: State, action: Action): State {
         steps: state.steps.map((s) => ({ ...s, done: true })),
       };
 
+    case "ADD_EXPORT":
+      return { ...state, sections: [...state.sections, { kind: "export", data: action.data }] };
+
     case "ADD_NEWS":
       return {
         ...state,
@@ -248,6 +252,7 @@ export default function Terminal() {
             else if (event.section === "stress_test") dispatch({ type: "ADD_STRESS_TEST", data: event.data });
             else if (event.section === "frontier")    dispatch({ type: "ADD_FRONTIER",    data: event.data });
             else if (event.section === "news")        dispatch({ type: "ADD_NEWS",        data: event.data });
+            else if (event.section === "export")      dispatch({ type: "ADD_EXPORT",      data: event.data });
             else if (event.section === "caveats")     dispatch({ type: "ADD_CAVEATS" });
             break;
           case "token":  dispatch({ type: "APPEND_TOKEN", token: event.token }); break;

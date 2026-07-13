@@ -109,6 +109,12 @@ export type OptionsData = {
   theta_interp: string;
 };
 
+export type ExportData = {
+  format: "excel" | "powerbi";
+  file?: string;
+  files?: Record<string, string>;
+};
+
 export type SSEEvent =
   | { type: "section"; section: "stock";       data: StockData }
   | { type: "section"; section: "monte_carlo"; data: MonteCarloData }
@@ -119,12 +125,13 @@ export type SSEEvent =
   | { type: "section"; section: "stress_test"; data: StressTestData }
   | { type: "section"; section: "frontier";    data: FrontierData }
   | { type: "section"; section: "news";        data: NewsData }
+  | { type: "section"; section: "export";      data: ExportData }
   | { type: "token";   token: string }
   | { type: "status";  tool: string; label: string }
   | { type: "error";   message: string }
   | { type: "done" };
 
-export type SectionType = "stock" | "monte_carlo" | "risk" | "options" | "verdict" | "caveats" | "prose" | "portfolio" | "stress_test" | "frontier" | "news";
+export type SectionType = "stock" | "monte_carlo" | "risk" | "options" | "verdict" | "caveats" | "prose" | "portfolio" | "stress_test" | "frontier" | "news" | "export";
 
 export type ReportSection =
   | { kind: "stock";       data: StockData }
@@ -137,4 +144,5 @@ export type ReportSection =
   | { kind: "portfolio";   data: PortfolioData }
   | { kind: "stress_test"; data: StressTestData }
   | { kind: "frontier";    data: FrontierData }
-  | { kind: "news";        data: NewsData };
+  | { kind: "news";        data: NewsData }
+  | { kind: "export";      data: ExportData };

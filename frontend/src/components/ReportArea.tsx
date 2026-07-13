@@ -12,6 +12,7 @@ import PortfolioCard  from "./cards/PortfolioCard";
 import StressTestCard from "./cards/StressTestCard";
 import FrontierCard   from "./cards/FrontierCard";
 import NewsCard       from "./cards/NewsCard";
+import ExportCard     from "./cards/ExportCard";
 import TitleBlock     from "./report/TitleBlock";
 
 const SAMPLE_QUERIES = [
@@ -140,5 +141,6 @@ function SectionRenderer({ section }: { section: ReportSection }) {
     case "stress_test": return <StressTestCard data={section.data} />;
     case "frontier":    return <FrontierCard   data={section.data} />;
     case "news":        return <NewsCard       data={section.data} />;
+    case "export":      return <ExportCard     data={section.data} />;
   }
 }
