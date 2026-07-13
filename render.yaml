@@ -1,0 +1,35 @@
+services:
+  # ── Backend (FastAPI) ─────────────────────────────────────────────────────
+  - type: web
+    name: finsim-api
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: GROQ_API_KEY
+        sync: false   # set in Render dashboard
+      - key: ALLOWED_ORIGINS
+        sync: false   # set to https://finsim-frontend.onrender.com after frontend deploys
+      - key: RATE_LIMIT
+        value: "20"
+
+  # ── Frontend (Next.js) ───────────────────────────────────────────────────
+  - type: web
+    name: finsim-frontend
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.0.0
+      - key: NEXT_PUBLIC_API_URL
+        sync: false   # set to https://finsim-api.onrender.com after backend deploys

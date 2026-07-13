@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   title: "FinSim — Agentic Financial Risk Analysis",
   description:
     "AI agent that runs Monte Carlo simulations, VaR/CVaR, options pricing, and stress tests from plain-English questions — and composes an analyst research note live.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
