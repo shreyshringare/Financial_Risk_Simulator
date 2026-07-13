@@ -1,6 +1,10 @@
 # FinSim — Quantitative Risk Terminal
 
-> Agentic financial risk platform with a phosphor terminal analyst UI. Natural language queries drive a LangChain ReAct agent (Groq llama-3.3-70b) that orchestrates Monte Carlo GBM simulation, VaR/CVaR/Sharpe/drawdown, Markowitz efficient frontier, historical stress testing, RSS news sentiment, and Excel/PowerBI export — streamed token-by-token to a Next.js analyst report UI.
+> Agentic financial risk platform. Natural language queries drive a LangChain ReAct agent (Groq llama-3.3-70b) that orchestrates Monte Carlo GBM simulation, VaR/CVaR/Sharpe/drawdown, Markowitz efficient frontier, Black-Scholes options pricing, historical stress testing, RSS news sentiment, and Excel/PowerBI export — streamed token-by-token to a Next.js research desk UI.
+
+![Landing page](docs/screenshots/landing.png)
+
+![Research desk](docs/screenshots/app.png)
 
 ---
 
