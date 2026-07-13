@@ -40,16 +40,31 @@ def _tool_label(name: str) -> str:
 class AnalystCallbackHandler(AsyncCallbackHandler):
     """Intercepts LangChain events and pushes typed SSE events to self.queue."""
 
+    _FINAL_MARKER = "Final Answer:"
+
     def __init__(self) -> None:
         super().__init__()
         self.queue: asyncio.Queue[str | None] = asyncio.Queue()
+        self._token_buffer = ""
+        self._in_final_answer = False
 
     async def _put(self, event: dict) -> None:
         await self.queue.put(json.dumps(event))
 
     async def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
-        if token:
+        if not token:
+            return
+        if self._in_final_answer:
             await self._put({"type": "token", "token": token})
+            return
+        self._token_buffer += token
+        if self._FINAL_MARKER in self._token_buffer:
+            idx = self._token_buffer.index(self._FINAL_MARKER) + len(self._FINAL_MARKER)
+            remainder = self._token_buffer[idx:].lstrip("\n ")
+            self._in_final_answer = True
+            self._token_buffer = ""
+            if remainder:
+                await self._put({"type": "token", "token": remainder})
 
     async def on_tool_start(self, serialized: dict, input_str: str, **kwargs: Any) -> None:
         name = serialized.get("name", "")
