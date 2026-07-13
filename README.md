@@ -8,8 +8,6 @@ Ask a question. A LangChain ReAct agent (Groq Llama 3.3 70B) runs Monte Carlo si
 
 > Free tier — backend cold-starts in ~30s after idle. The UI shows "warming up…" automatically.
 
-![App in use](docs/screenshots/app-in-use.png)
-
 ---
 
 ## What it does
