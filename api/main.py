@@ -6,7 +6,7 @@ from collections import OrderedDict
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from sse_starlette.sse import EventSourceResponse
@@ -110,13 +110,62 @@ async def suggestions():
     return await asyncio.to_thread(build_suggestions)
 
 
+@app.post("/api/upload")
+async def upload_document(
+    request: Request,
+    file: UploadFile = File(...),
+    session_id: str = Form(...),
+):
+    """Upload a document (PDF/DOCX/TXT/MD/CSV) to be used as context for this session."""
+    if _API_KEY:
+        key = request.headers.get("X-API-Key", "")
+        if key != _API_KEY:
+            raise HTTPException(status_code=401, detail="Missing or invalid X-API-Key header.")
+
+    suffix = pathlib.Path(file.filename or "").suffix.lower()
+    if suffix not in _ALLOWED_UPLOAD_SUFFIXES:
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported file type '{suffix}'. Allowed: {', '.join(sorted(_ALLOWED_UPLOAD_SUFFIXES))}",
+        )
+
+    content = await file.read()
+    if len(content) > _UPLOAD_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 10 MB.")
+    if not content:
+        raise HTTPException(status_code=400, detail="File is empty.")
+
+    from rag.document_store import ingest_document
+    try:
+        chunks = await asyncio.to_thread(ingest_document, session_id, file.filename or "upload", content)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    return {"session_id": session_id, "filename": file.filename, "chunks": chunks}
+
+
+@app.delete("/api/session/{session_id}")
+async def delete_session(session_id: str, request: Request):
+    """Remove all uploaded documents for a session."""
+    if _API_KEY:
+        key = request.headers.get("X-API-Key", "")
+        if key != _API_KEY:
+            raise HTTPException(status_code=401, detail="Missing or invalid X-API-Key header.")
+    from rag.document_store import delete_session_docs
+    await asyncio.to_thread(delete_session_docs, session_id)
+    return {"deleted": True}
+
+
 _MAX_HISTORY_TURNS = 10
 _VALID_ROLES = {"user", "assistant"}
+_UPLOAD_MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+_ALLOWED_UPLOAD_SUFFIXES = {".pdf", ".docx", ".txt", ".md", ".csv"}
 
 
 class ChatRequest(BaseModel):
     message: str = Field(max_length=2000)
     history: list[dict[str, Any]] = []
+    session_id: str | None = None
 
     @field_validator("message")
     @classmethod
@@ -179,7 +228,7 @@ async def chat(req: ChatRequest, request: Request):
     # Fresh executor per request — no shared state between concurrent users
     agent_executor = make_executor(app.state.llm)
 
-    # Build enriched message from history
+    # Build enriched message from history + uploaded session documents
     context_lines = []
     for turn in req.history[-10:]:
         role = turn.get("role", "")
@@ -189,6 +238,17 @@ async def chat(req: ChatRequest, request: Request):
         elif role == "assistant":
             context_lines.append(f"Previous answer: {content[:200]}...")
     message = req.message
+
+    # Retrieve relevant chunks from user-uploaded documents if session has any
+    if req.session_id:
+        try:
+            from rag.document_store import query_session_docs
+            doc_context = await asyncio.to_thread(query_session_docs, req.session_id, req.message, 3)
+            if doc_context:
+                context_lines.insert(0, f"[User document context]\n{doc_context}\n[End of document context]")
+        except Exception:
+            pass  # document retrieval failure is non-fatal
+
     if context_lines:
         message = "[Conversation context]\n" + "\n".join(context_lines) + "\n\n[Current question]\n" + req.message
 

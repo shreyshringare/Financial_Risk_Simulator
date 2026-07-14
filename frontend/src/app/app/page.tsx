@@ -4,12 +4,14 @@ import { useReducer, useCallback, useState, useEffect, useRef } from "react";
 import type { ReportSection, SSEEvent } from "@/types/events";
 import { streamChat, API_BASE } from "@/lib/sseClient";
 import { fetchSuggestions, type Suggestion } from "@/lib/suggestions";
+import { getSessionId } from "@/lib/session";
 import QueryBar from "@/components/QueryBar";
 import ReportArea from "@/components/ReportArea";
 import Sidebar from "@/components/Sidebar";
 import AgentTimeline from "@/components/AgentTimeline";
 import WelcomeModal from "@/components/WelcomeModal";
 import CommandPalette from "@/components/CommandPalette";
+import DocumentUpload from "@/components/DocumentUpload";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -196,6 +198,7 @@ export default function Terminal() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [sessionId] = useState(() => getSessionId());
   const sectionsRef = useRef<ReportSection[]>([]);
 
   useEffect(() => {
@@ -241,7 +244,7 @@ export default function Terminal() {
     setQueryCount((c) => c + 1);
     dispatch({ type: "START" });
     try {
-      for await (const event of streamChat(message)) {
+      for await (const event of streamChat(message, [], sessionId)) {
         switch (event.type) {
           case "section":
             if      (event.section === "stock")       dispatch({ type: "ADD_STOCK",       data: event.data });
@@ -350,7 +353,8 @@ export default function Terminal() {
         </main>
 
         <div style={{ borderTop: "1px solid var(--l-border)", padding: "14px 24px", flexShrink: 0 }}>
-          <div style={{ maxWidth: 800, margin: "0 auto" }}>
+          <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
+            <DocumentUpload sessionId={sessionId} disabled={state.streaming} />
             <QueryBar onSubmit={handleQuery} disabled={state.streaming} />
           </div>
         </div>

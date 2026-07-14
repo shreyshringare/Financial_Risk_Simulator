@@ -4,12 +4,13 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:800
 
 export async function* streamChat(
   message: string,
-  history: Array<{ role: string; content: string }> = []
+  history: Array<{ role: string; content: string }> = [],
+  sessionId?: string,
 ): AsyncGenerator<SSEEvent> {
   const res = await fetch(`${API_BASE}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, history }),
+    body: JSON.stringify({ message, history, session_id: sessionId ?? null }),
   });
 
   if (!res.ok || !res.body) {
