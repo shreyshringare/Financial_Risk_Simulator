@@ -47,7 +47,7 @@ def compute_efficient_frontier(
 
         port_return = np.dot(w, mean_returns)
         port_vol = np.sqrt(w.T @ cov_matrix.values @ w)
-        sharpe = (port_return - risk_free_rate) / port_vol
+        sharpe = (port_return - risk_free_rate) / port_vol if port_vol > 1e-10 else 0.0
 
         row = list(w) + [port_return, port_vol, sharpe]
         results.append(row)

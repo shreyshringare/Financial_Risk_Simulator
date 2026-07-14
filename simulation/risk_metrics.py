@@ -33,7 +33,8 @@ def calculate_cvar(simulated_paths: np.ndarray, confidence: float = 0.95) -> flo
     """
     returns = simulated_paths[:, -1] / simulated_paths[:, 0] - 1
     var_threshold = np.percentile(returns, (1 - confidence) * 100)
-    cvar = returns[returns <= var_threshold].mean()
+    tail = returns[returns <= var_threshold]
+    cvar = tail.mean() if len(tail) > 0 else var_threshold
     return float(cvar)
 
 
@@ -89,7 +90,8 @@ def calculate_historical_cvar(prices: pd.Series, confidence: float = 0.95) -> fl
     """
     returns = prices.pct_change().dropna()
     threshold = calculate_historical_var(prices, confidence)
-    return float(returns[returns <= threshold].mean())
+    tail = returns[returns <= threshold]
+    return float(tail.mean() if len(tail) > 0 else threshold)
 
 
 def calculate_annualized_volatility(prices: pd.Series) -> float:

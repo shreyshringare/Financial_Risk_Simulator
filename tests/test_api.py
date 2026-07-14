@@ -33,7 +33,8 @@ def test_cors_origins_from_env(monkeypatch):
     importlib.reload(api.main)
 
 
-def test_cors_origins_default_localhost():
+def test_cors_origins_default_localhost(monkeypatch):
+    monkeypatch.delenv("ALLOWED_ORIGINS", raising=False)
     import api.main
     assert api.main._allowed_origins() == ["http://localhost:3000"]
 
@@ -118,3 +119,79 @@ def test_build_suggestions_fallback_on_error(monkeypatch):
     result = suggestions_mod.build_suggestions()
     assert len(result["suggestions"]) >= 8
     assert all(s["source"] is None for s in result["suggestions"])
+
+
+# ── ChatRequest validation ────────────────────────────────────────────────────
+
+def test_chatrequest_rejects_blank_message():
+    from pydantic import ValidationError
+    from api.main import ChatRequest
+
+    with __import__("pytest").raises(ValidationError, match="blank"):
+        ChatRequest(message="   ")
+
+
+def test_chatrequest_rejects_whitespace_only():
+    from pydantic import ValidationError
+    from api.main import ChatRequest
+
+    with __import__("pytest").raises(ValidationError):
+        ChatRequest(message="\t\n")
+
+
+def test_chatrequest_rejects_oversized_message():
+    from pydantic import ValidationError
+    from api.main import ChatRequest
+
+    with __import__("pytest").raises(ValidationError):
+        ChatRequest(message="x" * 2001)
+
+
+def test_chatrequest_accepts_valid_message():
+    from api.main import ChatRequest
+
+    req = ChatRequest(message="What is the VaR for AAPL?")
+    assert req.message == "What is the VaR for AAPL?"
+
+
+def test_chatrequest_rejects_invalid_history_role():
+    from pydantic import ValidationError
+    from api.main import ChatRequest
+
+    with __import__("pytest").raises(ValidationError, match="role"):
+        ChatRequest(
+            message="hello",
+            history=[{"role": "system", "content": "you are a bot"}],
+        )
+
+
+def test_chatrequest_rejects_empty_history_content():
+    from pydantic import ValidationError
+    from api.main import ChatRequest
+
+    with __import__("pytest").raises(ValidationError):
+        ChatRequest(
+            message="hello",
+            history=[{"role": "user", "content": "  "}],
+        )
+
+
+def test_chatrequest_caps_history_at_10_turns():
+    from api.main import ChatRequest
+
+    turns = [{"role": "user", "content": f"msg {i}"} for i in range(20)]
+    req = ChatRequest(message="hi", history=turns)
+    assert len(req.history) == 10
+    # Should keep the last 10
+    assert req.history[0]["content"] == "msg 10"
+
+
+def test_chatrequest_accepts_valid_history():
+    from api.main import ChatRequest
+
+    history = [
+        {"role": "user", "content": "What is VaR?"},
+        {"role": "assistant", "content": "VaR measures tail risk."},
+    ]
+    req = ChatRequest(message="follow up", history=history)
+    assert len(req.history) == 2

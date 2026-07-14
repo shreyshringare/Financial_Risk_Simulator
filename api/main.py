@@ -2,15 +2,15 @@ import os
 import asyncio
 import time
 import pathlib
-from collections import defaultdict
+from collections import OrderedDict
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from sse_starlette.sse import EventSourceResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,16 +18,38 @@ load_dotenv()
 # Rate limit: 20 requests per minute per IP on /api/chat
 _RATE_LIMIT = int(os.getenv("RATE_LIMIT", "20"))
 _RATE_WINDOW = 60  # seconds
-_buckets: dict = defaultdict(lambda: {"count": 0, "reset_at": 0.0})
+_BUCKET_MAX = 10_000  # max unique IPs tracked (LRU eviction beyond this)
+_buckets: OrderedDict = OrderedDict()  # ip -> {"count": int, "reset_at": float}
 
 # Optional API key (set API_KEY= in .env to enable, leave unset to disable)
 _API_KEY = os.getenv("API_KEY")
 
 
+_REPORT_MAX_AGE = 86400  # seconds (24 h)
+
+
+def _cleanup_old_reports() -> None:
+    """Delete report files older than 24 hours."""
+    cutoff = time.time() - _REPORT_MAX_AGE
+    for dir_name in ("reports", "powerbi_data"):
+        p = pathlib.Path(dir_name)
+        if not p.exists():
+            continue
+        for f in p.iterdir():
+            if f.is_file() and f.stat().st_mtime < cutoff:
+                try:
+                    f.unlink()
+                except OSError:
+                    pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from agent.agent import build_llm
+    from agent.tools.base import get_vectorstore
     app.state.llm = build_llm()
+    # Pre-warm vectorstore so first request is not slow
+    await asyncio.to_thread(get_vectorstore)
     yield
 
 
@@ -60,10 +82,17 @@ async def health():
 _EXPORT_DIRS = ["reports", "powerbi_data"]
 
 @app.get("/api/download/{filename}")
-async def download_file(filename: str):
+async def download_file(filename: str, request: Request):
+    # Same API-key guard as /api/chat when key is configured
+    if _API_KEY:
+        key = request.headers.get("X-API-Key", "")
+        if key != _API_KEY:
+            raise HTTPException(status_code=401, detail="Missing or invalid X-API-Key header.")
     safe = pathlib.Path(filename).name  # strip any path traversal
     if not safe or safe.startswith("."):
         raise HTTPException(status_code=400, detail="Invalid filename.")
+    # Prune stale reports on each download request (lightweight, async-safe)
+    await asyncio.to_thread(_cleanup_old_reports)
     for dir_name in _EXPORT_DIRS:
         path = pathlib.Path(dir_name) / safe
         if path.exists() and path.is_file():
@@ -81,9 +110,34 @@ async def suggestions():
     return await asyncio.to_thread(build_suggestions)
 
 
+_MAX_HISTORY_TURNS = 10
+_VALID_ROLES = {"user", "assistant"}
+
+
 class ChatRequest(BaseModel):
-    message: str
-    history: list[dict] = []
+    message: str = Field(max_length=2000)
+    history: list[dict[str, Any]] = []
+
+    @field_validator("message")
+    @classmethod
+    def message_not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("message must not be blank or whitespace-only")
+        return v
+
+    @field_validator("history")
+    @classmethod
+    def validate_history(cls, turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        if len(turns) > _MAX_HISTORY_TURNS:
+            turns = turns[-_MAX_HISTORY_TURNS:]
+        for turn in turns:
+            role = turn.get("role", "")
+            content = turn.get("content", "")
+            if role not in _VALID_ROLES:
+                raise ValueError(f"history turn role must be 'user' or 'assistant', got '{role}'")
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError("history turn content must be a non-empty string")
+        return turns
 
 
 @app.post("/api/chat")
@@ -98,6 +152,15 @@ async def chat(req: ChatRequest, request: Request):
     # — Rate limiting per IP —
     ip = request.client.host if request.client else "unknown"
     now = time.time()
+
+    # LRU-bounded rate bucket: move-to-end on access, evict oldest when over capacity
+    if ip in _buckets:
+        _buckets.move_to_end(ip)
+    else:
+        _buckets[ip] = {"count": 0, "reset_at": 0.0}
+        if len(_buckets) > _BUCKET_MAX:
+            _buckets.popitem(last=False)  # evict LRU entry
+
     bucket = _buckets[ip]
     if now > bucket["reset_at"]:
         bucket["count"] = 0
@@ -118,7 +181,7 @@ async def chat(req: ChatRequest, request: Request):
 
     # Build enriched message from history
     context_lines = []
-    for turn in req.history[-6:]:
+    for turn in req.history[-10:]:
         role = turn.get("role", "")
         content = str(turn.get("content", ""))
         if role == "user":

@@ -6,7 +6,7 @@ import {
 } from "@/lib/riskUtils";
 
 export default function RiskCard({ data }: { data: RiskData }) {
-  const overall = overallRisk(data.var, data.sharpe, data.max_drawdown);
+  const overall = overallRisk(data.var_hist ?? data.var, data.sharpe, data.max_drawdown);
   const sharpeLevel: RiskLevel = data.sharpe > 1 ? "LOW" : data.sharpe > 0.5 ? "MODERATE" : "HIGH";
 
   return (

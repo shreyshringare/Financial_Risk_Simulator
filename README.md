@@ -4,7 +4,7 @@
 
 Ask a question. A LangChain ReAct agent (Groq Llama 3.3 70B) runs Monte Carlo simulations, VaR/CVaR, options pricing, portfolio optimization, and stress tests — then composes an analyst research note streamed live to your browser.
 
-**[Live Demo]((https://financial-risk-simulator-frontend.onrender.com))** &nbsp;·&nbsp; **[API](https://financial-risk-simulator-i5jq.onrender.com/api/health)** &nbsp;·&nbsp; **[GitHub](https://github.com/shreyshringare/Financial_Risk_Simulator)**
+**[Live Demo](https://financial-risk-simulator-frontend.onrender.com)** &nbsp;·&nbsp; **[API](https://financial-risk-simulator-i5jq.onrender.com/api/health)** &nbsp;·&nbsp; **[GitHub](https://github.com/shreyshringare/Financial_Risk_Simulator)**
 
 > Free tier — backend cold-starts in ~30s after idle. The UI shows "warming up…" automatically.
 
@@ -218,7 +218,7 @@ One-command deploy via [Render Blueprint](https://render.com/docs/infrastructure
 1. Fork this repo
 2. Render dashboard → **New → Blueprint** → connect your fork
 3. Set env vars:
-   - `finsim-api` → `GROQ_API_KEY`, `ALLOWED_ORIGINS=https://finsim-frontend.onrender.com`
+   - `finsim-api` → `GROQ_API_KEY`, `ALLOWED_ORIGINS=https://financial-risk-simulator-frontend.onrender.com`
    - `finsim-frontend` → `NEXT_PUBLIC_API_URL=https://finsim-api.onrender.com`
 4. Redeploy frontend after setting env vars (Next.js bakes them at build time)
 

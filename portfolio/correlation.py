@@ -106,11 +106,13 @@ def calculate_portfolio_var(
     # Step 8: CVaR
     cvar = terminal_returns[terminal_returns <= var].mean()
 
-    # Step 9: Diversification ratio
-    individual_vols = log_returns.std().values * np.sqrt(days)  # annualized
-    portfolio_vol = np.std(terminal_returns)
+    # Step 9: Diversification ratio (standard definition: DR > 1 = benefit from diversification)
+    # Use consistent daily log-return std, scaled to full horizon by sqrt(days).
+    individual_vols = log_returns.std().values * np.sqrt(days)
+    portfolio_log_vol = np.std(np.log(portfolio_paths[:, -1] / portfolio_paths[:, 0]))
     weighted_avg_vol = weights @ individual_vols
-    diversification_ratio = portfolio_vol / weighted_avg_vol if weighted_avg_vol != 0 else np.nan
+    # DR = weighted_avg / portfolio: >1 means portfolio is less risky than naive weighted sum
+    diversification_ratio = weighted_avg_vol / portfolio_log_vol if portfolio_log_vol > 1e-10 else np.nan
 
     return {
         "tickers": tickers,

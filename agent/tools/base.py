@@ -11,7 +11,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_TICKER_RE = re.compile(r'^[A-Z0-9.\^-]{1,12}$')
+# Accepts: AAPL, BRK.B, 0700.HK, ^GSPC, RELIANCE.NS, BRK-B
+# Rejects: bare ^, empty, non-alphanumeric-only strings.
+# ^ allowed only as leading prefix followed by at least one letter/digit.
+_TICKER_RE = re.compile(r'^(?:\^[A-Z0-9]|[A-Z0-9])[A-Z0-9.\^-]{0,10}$')
 
 def _sanitize_ticker(ticker: str) -> str:
     """Validate and normalise a ticker symbol. Raises ValueError on invalid input."""
@@ -97,6 +100,10 @@ def calculate_risk_metrics(ticker: str) -> str:
         ticker = _sanitize_ticker(ticker)
         start = _default_start()
         prices = fetch_prices(ticker, start=start).dropna()
+
+        if len(prices) < 30:
+            return json.dumps({"error": f"Insufficient price data for {ticker}: only {len(prices)} trading days available (need ≥30). The data source may be unavailable or the ticker may be invalid."})
+
         paths = run_monte_carlo(prices, days=252, simulations=1000)
 
         try:
@@ -244,6 +251,8 @@ def export_analysis_report(ticker: str, format: str = "excel") -> str:
     try:
         ticker = _sanitize_ticker(ticker)
         prices = fetch_prices(ticker, start=_default_start()).dropna()
+        if len(prices) < 30:
+            return json.dumps({"error": f"Insufficient price data for {ticker}: only {len(prices)} trading days available (need ≥30)."})
         paths = run_monte_carlo(prices, days=252, simulations=1000)  # seed=42 default
         metrics = {
             "var": round(float(calculate_historical_var(prices)), 4),

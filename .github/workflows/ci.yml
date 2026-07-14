@@ -19,6 +19,7 @@ jobs:
       - run: python -m pytest tests/ -v
         env:
           GROQ_API_KEY: ""
+          OPENAI_API_KEY: ""
 
   frontend:
     runs-on: ubuntu-latest
