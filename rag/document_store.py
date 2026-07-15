@@ -19,6 +19,7 @@ PERSIST_DIRECTORY = "./chroma_db"
 SESSION_COLLECTION = "session_docs"
 CHUNK_SIZE = 600
 CHUNK_OVERLAP = 60
+MAX_CHUNKS_PER_SESSION = 500  # ~300KB text; guards against ChromaDB flooding
 
 _EMBEDDINGS = None
 
@@ -86,10 +87,18 @@ def parse_document(filename: str, content: bytes) -> str:
         raise ValueError(f"Unsupported file type: '{suffix}'. Allowed: pdf, docx, txt, md, csv.")
 
 
+def _count_session_chunks(session_id: str) -> int:
+    """Return current chunk count for a session."""
+    vs = _get_vectorstore()
+    result = vs._collection.get(where={"session_id": session_id}, include=[])
+    return len(result["ids"])
+
+
 def ingest_document(session_id: str, filename: str, content: bytes) -> int:
     """
     Parse, chunk, embed, and store a document for a session.
     Returns number of chunks stored.
+    Raises ValueError if session chunk cap would be exceeded.
     """
     text = parse_document(filename, content)
     if not text.strip():
@@ -100,6 +109,13 @@ def ingest_document(session_id: str, filename: str, content: bytes) -> int:
         chunk_overlap=CHUNK_OVERLAP,
     )
     chunks = splitter.split_text(text)
+
+    existing = _count_session_chunks(session_id)
+    if existing + len(chunks) > MAX_CHUNKS_PER_SESSION:
+        raise ValueError(
+            f"Session document limit reached ({MAX_CHUNKS_PER_SESSION} chunks). "
+            "Remove existing documents before uploading more."
+        )
 
     docs = [
         Document(

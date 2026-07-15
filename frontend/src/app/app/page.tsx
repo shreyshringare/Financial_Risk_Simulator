@@ -200,6 +200,7 @@ export default function Terminal() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [sessionId] = useState(() => getSessionId());
   const sectionsRef = useRef<ReportSection[]>([]);
+  const turnsRef = useRef<Array<{ role: string; content: string }>>([]);
 
   useEffect(() => {
     sectionsRef.current = state.sections;
@@ -244,7 +245,7 @@ export default function Terminal() {
     setQueryCount((c) => c + 1);
     dispatch({ type: "START" });
     try {
-      for await (const event of streamChat(message, [], sessionId)) {
+      for await (const event of streamChat(message, turnsRef.current, sessionId)) {
         switch (event.type) {
           case "section":
             if      (event.section === "stock")       dispatch({ type: "ADD_STOCK",       data: event.data });
@@ -264,6 +265,18 @@ export default function Terminal() {
           case "error":  dispatch({ type: "ERROR", message: event.message }); break;
         }
       }
+      // Build assistant summary from last verdict or prose section
+      const lastSection = sectionsRef.current.findLast(
+        (s) => s.kind === "verdict" || s.kind === "prose"
+      );
+      const assistantContent = lastSection && "content" in lastSection
+        ? lastSection.content.slice(0, 400)
+        : "Analysis complete.";
+      turnsRef.current = [
+        ...turnsRef.current.slice(-9),
+        { role: "user", content: message },
+        { role: "assistant", content: assistantContent },
+      ];
       setHistory((h) => [...h.slice(-9), { query: message, at: Date.now(), sections: sectionsRef.current }]);
     } catch (err) {
       dispatch({ type: "ERROR", message: err instanceof Error ? err.message : "Network error" });
