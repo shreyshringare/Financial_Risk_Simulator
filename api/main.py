@@ -49,8 +49,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from agent.agent import build_llm
     from agent.tools.base import get_vectorstore
     app.state.llm = build_llm()
-    # Pre-warm vectorstore so first request is not slow
-    await asyncio.to_thread(get_vectorstore)
+    # Pre-warm vectorstore in background — must not block port binding on cold start.
+    # Model download (~110MB) + Wikipedia fetch can take 2-3 min; Render times out if awaited.
+    asyncio.get_event_loop().run_in_executor(None, get_vectorstore)
     yield
 
 
